@@ -1,0 +1,51 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: customer-service
+          uri: ${CUSTOMER_SERVICE_URL:http://customer-service:8081}
+          predicates:
+            - Path=/api/auth/**, /api/customers/**
+
+        - id: room-service
+          uri: ${ROOM_SERVICE_URL:http://room-service:8082}
+          predicates:
+            - Path=/api/rooms/**
+
+        - id: booking-service
+          uri: ${BOOKING_SERVICE_URL:http://booking-service:8083}
+          predicates:
+            - Path=/api/bookings/**
+
+        - id: amenity-service
+          uri: ${AMENITY_SERVICE_URL:http://amenity-service:8084}
+          predicates:
+            - Path=/api/amenities/**
+
+        - id: dining-service
+          uri: ${DINING_SERVICE_URL:http://dining-service:8085}
+          predicates:
+            - Path=/api/menu/**, /api/orders/**
+
+        - id: billing-service
+          uri: ${BILLING_SERVICE_URL:http://billing-service:8086}
+          predicates:
+            - Path=/api/invoices/**
+
+jwt:
+  secret: ${JWT_SECRET:very-secret-key-min-32-chars-long-here}
+  expiration-ms: 86400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  config: classpath:logback-spring.xml

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item *)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\\\\src\\\\main\\\\java\\\\com\\\\pethotel\\\\gateway\\\\filter\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\\\\src\\\\main\\\\java\\\\com\\\\pethotel\\\\gateway\\\\config\")",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\\\\src\\\\main\\\\resources\")",
+      "Bash(Write-Host \"Directories created\")",
+      "PowerShell(Get-ChildItem -Recurse \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\" | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\" | ForEach-Object { $_.Name })"
+    ]
+  }
+}

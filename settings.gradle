@@ -1,0 +1,10 @@
+rootProject.name = 'pet-hotel'
+
+include 'common'
+include 'customer-service'
+include 'room-service'
+include 'booking-service'
+include 'amenity-service'
+include 'dining-service'
+include 'billing-service'
+include 'api-gateway'
