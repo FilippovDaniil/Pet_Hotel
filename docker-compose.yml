@@ -248,6 +248,16 @@ services:
         condition: service_started
     restart: on-failure
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    restart: on-failure
+
 # ── Volumes ──────────────────────────────────────────────────────────────────
 
 volumes:

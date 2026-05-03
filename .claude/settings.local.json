@@ -8,7 +8,10 @@
       "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\\\\src\\\\main\\\\resources\")",
       "Bash(Write-Host \"Directories created\")",
       "PowerShell(Get-ChildItem -Recurse \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\api-gateway\" | ForEach-Object { $_.FullName })",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\" | ForEach-Object { $_.Name })"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\" | ForEach-Object { $_.Name })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\" -Recurse)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\" -Recurse -File | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\\\\\",\"\"\\) })"
     ]
   }
 }
