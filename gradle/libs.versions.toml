@@ -27,6 +27,7 @@ mapstruct                         = { module = "org.mapstruct:mapstruct", versio
 mapstruct-processor               = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
 logstash-logback-encoder          = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback" }
 springdoc-openapi                 = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+spring-boot-starter-test          = { module = "org.springframework.boot:spring-boot-starter-test" }
 
 [plugins]
 spring-boot               = { id = "org.springframework.boot", version.ref = "spring-boot" }

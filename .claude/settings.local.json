@@ -15,7 +15,8 @@
       "Bash(git *)",
       "Bash(npm install *)",
       "Bash(npm audit *)",
-      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); Object.values\\(d.vulnerabilities\\).forEach\\(v=>console.log\\(v.severity, v.name, '-', v.via.map\\(x=>typeof x==='string'?x:x.title\\).join\\(', '\\)\\)\\)\")"
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); Object.values\\(d.vulnerabilities\\).forEach\\(v=>console.log\\(v.severity, v.name, '-', v.via.map\\(x=>typeof x==='string'?x:x.title\\).join\\(', '\\)\\)\\)\")",
+      "Bash(xargs grep *)"
     ]
   }
 }
