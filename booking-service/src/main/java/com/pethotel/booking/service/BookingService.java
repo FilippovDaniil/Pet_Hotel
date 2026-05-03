@@ -92,10 +92,12 @@ public class BookingService {
         return toDto(booking);
     }
 
+    @Transactional(readOnly = true)
     public List<BookingDto> getMyBookings(Long customerId) {
         return bookingRepository.findByCustomerId(customerId).stream().map(this::toDto).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<BookingDto> getAll() {
         return bookingRepository.findAll().stream().map(this::toDto).toList();
     }

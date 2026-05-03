@@ -210,11 +210,7 @@ src/pages/       → Страницы по ролям
 ## Сборка и запуск
 
 ```bash
-# Собрать все JAR
-./gradlew build -x test          # Unix
-gradlew.bat build -x test        # Windows
-
-# Запустить всё в Docker
+# Запустить всё (JAR собирается внутри Docker, pre-build не нужен)
 docker-compose up --build
 
 # Только инфраструктура (для локальной разработки)
@@ -226,6 +222,38 @@ docker-compose up postgres redis kafka zookeeper -d
 # Frontend dev
 cd frontend && npm run dev
 ```
+
+## Docker (multi-stage build)
+
+Каждый backend Dockerfile — **multi-stage build** с BuildKit cache:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM eclipse-temurin:17-jdk-alpine AS builder
+WORKDIR /workspace
+COPY . .
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :<service>:build -x test --no-daemon
+
+FROM eclipse-temurin:17-jre-alpine
+COPY --from=builder /workspace/<service>/build/libs/*.jar app.jar
+```
+
+**В docker-compose:** `context: .` для всех backend-сервисов (Gradle видит весь multi-project включая `common`).
+Frontend: `context: ./frontend`.
+
+## CI/CD
+
+Файлы в `.github/`:
+
+| Файл | Триггер | Что делает |
+|---|---|---|
+| `workflows/ci.yml` | push/PR к master | Сборка + тесты backend, lint + build frontend |
+| `workflows/docker-publish.yml` | push тега `v*` | Публикует Docker образы в GHCR |
+| `workflows/codeql.yml` | push/PR/еженедельно | Статический анализ (Java + TS) |
+| `dependabot.yml` | еженедельно | Обновление зависимостей gradle/npm/actions |
+
+**Образы:** `ghcr.io/filippovdaniil/pet-hotel-<service>:latest`
 
 ---
 
@@ -271,9 +299,63 @@ BOOKING_SERVICE_URL      http://booking-service:8083
 
 ---
 
+## Тесты
+
+### Запуск
+
+```bash
+# Unit-тесты (без инфраструктуры, файлы *Test.java)
+./gradlew test
+
+# Интеграционные тесты (требуют запущенный Docker Desktop, файлы *IT.java)
+./gradlew integrationTest
+
+# Конкретный сервис
+./gradlew :customer-service:integrationTest
+```
+
+### Структура
+
+| Тип | Аннотация | Инфраструктура | Где |
+|---|---|---|---|
+| Unit | `@ExtendWith(MockitoExtension.class)` | нет | все сервисы: `*Test.java` |
+| Web slice | `@WebMvcTest` + `@MockBean` | нет | `AuthControllerTest` |
+| Integration (HTTP) | `@SpringBootTest(RANDOM_PORT)` + `@Testcontainers` | PostgreSQL (Docker) | `*IT.java` |
+| Integration (JPA) | `@DataJpaTest` + `@Testcontainers` | PostgreSQL (Docker) | `RoomRepositoryIT` |
+
+### Ключевые паттерны unit-тестов
+
+- **BigDecimal:** `assertThat(...).isEqualByComparingTo("1000")` — не `isEqualTo` (избегает scale-проблем)
+- **Kafka events:** `ArgumentCaptor<Object>` + cast; `verify(kafkaTemplate).send(eq(topic), any())`
+- **`@WebMvcTest`** требует `@Import(GlobalExceptionHandler.class)` для корректных HTTP-статусов
+- **`@Value`-поля** не инжектируются через `@InjectMocks`; если нужны в тесте — `ReflectionTestUtils.setField`
+- **WebClient mock-цепочка:** `Builder → WebClient → RequestHeadersUriSpec → RequestHeadersSpec → ResponseSpec`
+- **Mockito + generics:** `@SuppressWarnings("unchecked")` на классе при работе с `WebClient.*Spec`
+- **Premium SAUNA/BATH quota:** считается по количеству записей с `price == 0` в `booking.amenities`, SAUNA и BATH делят одну квоту
+
+### Ключевые паттерны интеграционных тестов
+
+- **`@ServiceConnection`** на `PostgreSQLContainer` автоматически конфигурирует datasource (Spring Boot 3.1+)
+- **Init script:** `new PostgreSQLContainer<>(...).withInitScript("create-<service>-schema.sql")` — создаёт PostgreSQL-схему ДО того, как Hibernate делает DDL
+- **EmbeddedKafka:** `@EmbeddedKafka(partitions = 1)` для сервисов, которые реально пишут в Kafka (booking, billing)
+- **Kafka для customer-service:** `spring.kafka` есть в зависимостях, но CustomerService не использует KafkaTemplate — контекст стартует без запущенного Kafka (lazy connection)
+
+## Жизненный цикл бронирования
+
+```
+PENDING → CONFIRMED (confirm)
+PENDING/CONFIRMED → CANCELLED (cancel)
+CONFIRMED → COMPLETED (checkOut → через checkIn)
+```
+
+**Допустимые переходы:** `confirm` только из PENDING; `cancel` только из PENDING/CONFIRMED; `checkIn` только из CONFIRMED; `checkOut` только из CONFIRMED (устанавливает COMPLETED).
+
+**Штраф при отмене клиентом:** 30% от `totalPrice` если `LocalDate.now().plusDays(1).isAfter(checkInDate)` (то есть заезд сегодня или завтра = в пределах 24 ч). Штраф не применяется если `isReception = true`.
+
+**Владелец:** `cancel` разрешён только если `requesterId == booking.customerId` OR `isReception = true`.
+
 ## Что ещё НЕ сделано (потенциальные задачи)
 
-- Тесты (Testcontainers для интеграционных)
 - Flyway/Liquibase вместо `ddl-auto: update`
 - Bootstrap admin-пользователь (сейчас нет способа стать ADMIN без ручного SQL)
 - Swagger через Gateway (сейчас только напрямую к каждому сервису)

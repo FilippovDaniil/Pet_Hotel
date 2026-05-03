@@ -7,6 +7,7 @@ lombok = "1.18.34"
 mapstruct = "1.5.5.Final"
 logstash-logback = "7.4"
 springdoc = "2.6.0"
+testcontainers = "1.20.4"
 
 [libraries]
 spring-boot-starter-web           = { module = "org.springframework.boot:spring-boot-starter-web" }
@@ -28,6 +29,10 @@ mapstruct-processor               = { module = "org.mapstruct:mapstruct-processo
 logstash-logback-encoder          = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback" }
 springdoc-openapi                 = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-boot-starter-test          = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-testcontainers        = { module = "org.springframework.boot:spring-boot-testcontainers" }
+spring-kafka-test                 = { module = "org.springframework.kafka:spring-kafka-test" }
+testcontainers-junit-jupiter      = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-postgresql         = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 
 [plugins]
 spring-boot               = { id = "org.springframework.boot", version.ref = "spring-boot" }

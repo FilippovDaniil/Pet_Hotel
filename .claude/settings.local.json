@@ -16,7 +16,19 @@
       "Bash(npm install *)",
       "Bash(npm audit *)",
       "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); Object.values\\(d.vulnerabilities\\).forEach\\(v=>console.log\\(v.severity, v.name, '-', v.via.map\\(x=>typeof x==='string'?x:x.title\\).join\\(', '\\)\\)\\)\")",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(gradlew.bat :common:test --info)",
+      "PowerShell(docker info *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Test-NetConnection *)",
+      "PowerShell($env:DOCKER_HOST = \"tcp://127.0.0.1:2375\"; cd C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel; .\\\\gradlew.bat :billing-service:integrationTest --info 2>&1 | Select-String \"DockerClient|Testcontainers|ERROR|INFO org.test|PostgreSQL|PASSED|FAILED|tests completed\" | Select-Object -First 25)",
+      "Bash(.\\\\gradlew.bat :billing-service:integrationTest --info)",
+      "Bash(Select-String -Pattern \"Docker|docker|npipe|tcp|Testcontainers|FAILED|PASSED|Error|Exception|BadRequest|container|Container\")",
+      "Bash(Select-Object -First 60)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:forums.docker.com)",
+      "WebFetch(domain:java.testcontainers.org)"
     ]
   }
 }

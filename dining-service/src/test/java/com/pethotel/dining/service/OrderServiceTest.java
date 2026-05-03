@@ -41,10 +41,11 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(webClientBuilder.build()).thenReturn(webClient);
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
-        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        // lenient: some tests (unavailable item, getByBookingId) never reach WebClient
+        lenient().when(webClientBuilder.build()).thenReturn(webClient);
+        lenient().when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        lenient().when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        lenient().when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     }
 
     // ── limit split logic ────────────────────────────────────────────────────────

@@ -27,4 +27,25 @@ subprojects {
             extendsFrom annotationProcessor
         }
     }
+
+    dependencies {
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    test {
+        useJUnitPlatform()
+        exclude '**/*IT.class'
+    }
+
+    tasks.register('integrationTest', Test) {
+        useJUnitPlatform()
+        include '**/*IT.class'
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        shouldRunAfter test
+        environment 'DOCKER_HOST', 'npipe:////./pipe/docker_engine_linux'
+        environment 'DOCKER_API_VERSION', '1.41'
+        systemProperty 'DOCKER_API_VERSION', '1.41'
+        systemProperty 'DOCKER_HOST', 'npipe:////./pipe/docker_engine_linux'
+    }
 }

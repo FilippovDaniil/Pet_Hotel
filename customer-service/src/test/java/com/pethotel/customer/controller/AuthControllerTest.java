@@ -2,6 +2,7 @@ package com.pethotel.customer.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pethotel.customer.config.GlobalExceptionHandler;
+import com.pethotel.customer.config.SecurityConfig;
 import com.pethotel.customer.dto.AuthResponse;
 import com.pethotel.customer.dto.LoginRequest;
 import com.pethotel.customer.dto.RegisterRequest;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class AuthControllerTest {
 
     @Autowired MockMvc mockMvc;

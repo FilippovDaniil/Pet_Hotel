@@ -27,7 +27,7 @@ class DailyLimitServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        lenient().when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
     }
 
     // ── getDailyLimit ────────────────────────────────────────────────────────────
