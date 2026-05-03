@@ -380,26 +380,23 @@ Pet_Hotel/
 
 ### Шаги
 
-**1. Собрать все JAR-файлы:**
-
-```bash
-./gradlew build -x test
-```
-
-> На Windows используй `gradlew.bat build -x test`
-
-**2. Запустить весь стек:**
+**1. Запустить весь стек:**
 
 ```bash
 docker-compose up --build
 ```
 
-> Первый запуск займёт 5–10 минут (скачивание образов + сборка Docker images).
+> Первый запуск займёт 10–15 минут: Docker скачает базовые образы и соберёт JAR-файлы внутри контейнеров. Повторные запуски — значительно быстрее.
 
-**3. Проверить, что всё поднялось:**
+**2. Открыть приложение:**
 
 ```
-http://localhost:80        → Frontend (React)
+http://localhost          → Приложение (фронтенд)
+```
+
+**3. Дополнительные адреса:**
+
+```
 http://localhost:8080      → API Gateway
 http://localhost:3000      → Grafana (admin / admin)
 http://localhost:3100      → Loki (API)
@@ -992,10 +989,6 @@ docker-compose logs -f api-gateway
 ### Пересобрать только один сервис
 
 ```bash
-# Пересобрать JAR
-./gradlew :booking-service:build -x test
-
-# Пересобрать Docker image и рестартовать контейнер
 docker-compose up --build booking-service
 ```
 

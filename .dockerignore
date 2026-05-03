@@ -1,0 +1,10 @@
+**/build/
+**/.gradle/
+frontend/
+.idea/
+*.iml
+.vscode/
+.git/
+.gitignore
+*.md
+CLAUDE.md

@@ -95,8 +95,8 @@ services:
 
   customer-service:
     build:
-      context: ./customer-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: customer-service/Dockerfile
     ports:
       - "8081:8081"
     environment:
@@ -117,8 +117,8 @@ services:
 
   room-service:
     build:
-      context: ./room-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: room-service/Dockerfile
     ports:
       - "8082:8082"
     environment:
@@ -139,8 +139,8 @@ services:
 
   booking-service:
     build:
-      context: ./booking-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: booking-service/Dockerfile
     ports:
       - "8083:8083"
     environment:
@@ -161,8 +161,8 @@ services:
 
   amenity-service:
     build:
-      context: ./amenity-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: amenity-service/Dockerfile
     ports:
       - "8084:8084"
     environment:
@@ -183,8 +183,8 @@ services:
 
   dining-service:
     build:
-      context: ./dining-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: dining-service/Dockerfile
     ports:
       - "8085:8085"
     environment:
@@ -205,8 +205,8 @@ services:
 
   billing-service:
     build:
-      context: ./billing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: billing-service/Dockerfile
     ports:
       - "8086:8086"
     environment:
@@ -227,8 +227,8 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-gateway/Dockerfile
     ports:
       - "8080:8080"
     environment:
