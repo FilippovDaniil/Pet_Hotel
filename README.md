@@ -1,5 +1,9 @@
 # 🏨 Pet Hotel — Микросервисный Backend + Frontend
 
+[![CI](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/ci.yml/badge.svg)](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/ci.yml)
+[![Docker Publish](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/docker-publish.yml)
+[![CodeQL](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/codeql.yml/badge.svg)](https://github.com/FilippovDaniil/Pet_Hotel/actions/workflows/codeql.yml)
+
 Полнофункциональная система управления отелем: бронирование номеров, дополнительные услуги (баня, сауна, бассейн, бильярд, массаж), буфет с дневными лимитами, биллинг, ролевая модель доступа.
 
 ---

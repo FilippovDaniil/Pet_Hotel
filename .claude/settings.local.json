@@ -11,7 +11,11 @@
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\" | ForEach-Object { $_.Name })",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\" -Recurse)",
       "Bash(Select-Object FullName)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\" -Recurse -File | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\\\\\",\"\"\\) })"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\" -Recurse -File | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\frontend\\\\src\\\\\",\"\"\\) })",
+      "Bash(git *)",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); Object.values\\(d.vulnerabilities\\).forEach\\(v=>console.log\\(v.severity, v.name, '-', v.via.map\\(x=>typeof x==='string'?x:x.title\\).join\\(', '\\)\\)\\)\")"
     ]
   }
 }
