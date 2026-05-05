@@ -5,6 +5,7 @@ const navLinks = {
   CUSTOMER: [
     { to: '/dashboard', label: 'Главная' },
     { to: '/rooms', label: 'Номера' },
+    { to: '/services', label: 'Услуги' },
     { to: '/bookings/my', label: 'Мои брони' },
     { to: '/menu', label: 'Меню' },
     { to: '/invoices', label: 'Счета' },
@@ -12,6 +13,7 @@ const navLinks = {
   RECEPTION: [
     { to: '/dashboard', label: 'Главная' },
     { to: '/bookings/all', label: 'Все брони' },
+    { to: '/services', label: 'Услуги' },
   ],
   ADMIN: [
     { to: '/dashboard', label: 'Главная' },

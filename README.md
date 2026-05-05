@@ -874,6 +874,7 @@ GET /actuator/metrics  → метрики
 | Регистрация | `/register` | — |
 | Dashboard | `/dashboard` | все |
 | Поиск номеров | `/rooms` | CUSTOMER, ADMIN |
+| Услуги отеля | `/services` | CUSTOMER, RECEPTION, ADMIN |
 | Создание брони | `/bookings/new?roomId=...` | CUSTOMER |
 | Мои брони | `/bookings/my` | CUSTOMER |
 | Меню буфета | `/menu` | CUSTOMER |

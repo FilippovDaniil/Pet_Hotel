@@ -2,6 +2,7 @@ package com.pethotel.billing.config;
 
 import com.pethotel.billing.service.BillingService;
 import com.pethotel.common.event.BookingCompletedEvent;
+import com.pethotel.common.event.BookingCreatedEvent;
 import com.pethotel.common.event.OrderCreatedEvent;
 import com.pethotel.common.kafka.KafkaTopics;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,13 @@ import org.springframework.stereotype.Component;
 public class KafkaConsumerConfig {
 
     private final BillingService billingService;
+
+    @KafkaListener(topics = KafkaTopics.BOOKING_CREATED, groupId = "billing-service")
+    public void onBookingCreated(BookingCreatedEvent event) {
+        log.info("Kafka received booking.created: bookingId={} customerId={}",
+                event.getBookingId(), event.getCustomerId());
+        billingService.initInvoice(event);
+    }
 
     @KafkaListener(topics = KafkaTopics.BOOKING_COMPLETED, groupId = "billing-service")
     public void onBookingCompleted(BookingCompletedEvent event) {

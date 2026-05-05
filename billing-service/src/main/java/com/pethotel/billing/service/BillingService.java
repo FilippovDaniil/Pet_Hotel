@@ -5,6 +5,7 @@ import com.pethotel.billing.entity.Invoice;
 import com.pethotel.billing.entity.InvoiceStatus;
 import com.pethotel.billing.repository.InvoiceRepository;
 import com.pethotel.common.event.BookingCompletedEvent;
+import com.pethotel.common.event.BookingCreatedEvent;
 import com.pethotel.common.kafka.KafkaTopics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -25,32 +27,55 @@ public class BillingService {
     private final InvoiceRepository invoiceRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    // Called on booking.created — creates initial invoice with estimated amounts
     @Transactional
-    public void createInvoice(BookingCompletedEvent event) {
-        log.info("Creating invoice for bookingId={} customerId={}", event.getBookingId(), event.getCustomerId());
-
+    public void initInvoice(BookingCreatedEvent event) {
         if (invoiceRepository.findByBookingId(event.getBookingId()).isPresent()) {
-            log.warn("Invoice already exists for bookingId={}, skipping creation", event.getBookingId());
             return;
         }
-
-        BigDecimal roomAmount       = event.getRoomTotal()       != null ? event.getRoomTotal()       : BigDecimal.ZERO;
-        BigDecimal amenitiesAmount  = event.getAmenitiesTotal()  != null ? event.getAmenitiesTotal()  : BigDecimal.ZERO;
-        BigDecimal diningAmount     = BigDecimal.ZERO;
-        BigDecimal totalAmount      = roomAmount.add(amenitiesAmount).add(diningAmount);
-
+        BigDecimal total = event.getTotalPrice() != null ? event.getTotalPrice() : BigDecimal.ZERO;
         Invoice invoice = Invoice.builder()
                 .bookingId(event.getBookingId())
                 .customerId(event.getCustomerId())
-                .roomAmount(roomAmount)
-                .amenitiesAmount(amenitiesAmount)
-                .diningAmount(diningAmount)
-                .totalAmount(totalAmount)
+                .roomAmount(total)
+                .amenitiesAmount(BigDecimal.ZERO)
+                .diningAmount(BigDecimal.ZERO)
+                .totalAmount(total)
                 .status(InvoiceStatus.UNPAID)
                 .build();
-
         invoice = invoiceRepository.save(invoice);
-        log.info("Invoice created: id={} bookingId={} totalAmount={}", invoice.getId(), invoice.getBookingId(), totalAmount);
+        log.info("Invoice initialized: id={} bookingId={} total={}", invoice.getId(), event.getBookingId(), total);
+    }
+
+    // Called on booking.completed — updates invoice with final room/amenities breakdown
+    @Transactional
+    public void createInvoice(BookingCompletedEvent event) {
+        log.info("Finalizing invoice for bookingId={}", event.getBookingId());
+
+        BigDecimal roomAmount      = event.getRoomTotal()      != null ? event.getRoomTotal()      : BigDecimal.ZERO;
+        BigDecimal amenitiesAmount = event.getAmenitiesTotal() != null ? event.getAmenitiesTotal() : BigDecimal.ZERO;
+
+        Optional<Invoice> existing = invoiceRepository.findByBookingId(event.getBookingId());
+        if (existing.isPresent()) {
+            Invoice invoice = existing.get();
+            invoice.setRoomAmount(roomAmount);
+            invoice.setAmenitiesAmount(amenitiesAmount);
+            invoice.setTotalAmount(roomAmount.add(amenitiesAmount).add(invoice.getDiningAmount()));
+            invoiceRepository.save(invoice);
+            log.info("Invoice finalized: id={} bookingId={} total={}", invoice.getId(), event.getBookingId(), invoice.getTotalAmount());
+        } else {
+            Invoice invoice = Invoice.builder()
+                    .bookingId(event.getBookingId())
+                    .customerId(event.getCustomerId())
+                    .roomAmount(roomAmount)
+                    .amenitiesAmount(amenitiesAmount)
+                    .diningAmount(BigDecimal.ZERO)
+                    .totalAmount(roomAmount.add(amenitiesAmount))
+                    .status(InvoiceStatus.UNPAID)
+                    .build();
+            invoice = invoiceRepository.save(invoice);
+            log.info("Invoice created on completion: id={} bookingId={}", invoice.getId(), event.getBookingId());
+        }
     }
 
     @Transactional

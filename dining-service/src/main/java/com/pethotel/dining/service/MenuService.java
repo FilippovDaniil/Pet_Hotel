@@ -11,6 +11,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -24,7 +25,7 @@ public class MenuService {
     @Cacheable("menu-items")
     public List<MenuItemDto> getAll() {
         log.info("Fetching all menu items");
-        return menuItemRepository.findAll().stream().map(this::toDto).toList();
+        return new ArrayList<>(menuItemRepository.findAll().stream().map(this::toDto).toList());
     }
 
     public MenuItemDto getById(Long id) {

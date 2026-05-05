@@ -60,6 +60,8 @@ public class BookingService {
                 .build();
         booking = bookingRepository.save(booking);
 
+        validateNoInternalOverlaps(request.getAmenities());
+
         BigDecimal amenitiesTotal = BigDecimal.ZERO;
         for (AmenityBookingRequest ar : request.getAmenities()) {
             validateAmenitySlot(ar, booking);
@@ -188,6 +190,19 @@ public class BookingService {
                         .build());
         log.info("Booking checked-out: id={}", id);
         return toDto(booking);
+    }
+
+    private void validateNoInternalOverlaps(List<AmenityBookingRequest> amenities) {
+        for (int i = 0; i < amenities.size(); i++) {
+            for (int j = i + 1; j < amenities.size(); j++) {
+                AmenityBookingRequest a = amenities.get(i);
+                AmenityBookingRequest b = amenities.get(j);
+                if (a.getStartTime().isBefore(b.getEndTime()) && b.getStartTime().isBefore(a.getEndTime())) {
+                    throw new IllegalArgumentException(
+                        "Услуги пересекаются по времени: " + a.getServiceType() + " и " + b.getServiceType());
+                }
+            }
+        }
     }
 
     private void validateAmenitySlot(AmenityBookingRequest request, Booking booking) {

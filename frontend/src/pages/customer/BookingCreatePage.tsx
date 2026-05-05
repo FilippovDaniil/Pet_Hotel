@@ -123,6 +123,26 @@ export default function BookingCreatePage() {
         )
         return
       }
+      if (new Date(a.startTime) >= new Date(a.endTime)) {
+        setSubmitError(
+          `Время начала должно быть раньше времени окончания для «${SERVICE_TYPE_LABELS[a.serviceType as ServiceType]}»`
+        )
+        return
+      }
+    }
+
+    // Check for overlapping amenities within this booking
+    for (let i = 0; i < selectedAmenities.length; i++) {
+      for (let j = i + 1; j < selectedAmenities.length; j++) {
+        const a = selectedAmenities[i]
+        const b = selectedAmenities[j]
+        if (new Date(a.startTime) < new Date(b.endTime) && new Date(b.startTime) < new Date(a.endTime)) {
+          setSubmitError(
+            `Услуги «${SERVICE_TYPE_LABELS[a.serviceType as ServiceType]}» и «${SERVICE_TYPE_LABELS[b.serviceType as ServiceType]}» пересекаются по времени`
+          )
+          return
+        }
+      }
     }
 
     setSubmitting(true)

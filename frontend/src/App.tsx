@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth.store'
 import Layout from './components/layout/Layout'
@@ -11,6 +10,7 @@ import BookingCreatePage from './pages/customer/BookingCreatePage'
 import MyBookingsPage from './pages/customer/MyBookingsPage'
 import MenuPage from './pages/customer/MenuPage'
 import InvoicesPage from './pages/customer/InvoicesPage'
+import ServicesPage from './pages/customer/ServicesPage'
 import BookingDetailPage from './pages/BookingDetailPage'
 import AllBookingsPage from './pages/reception/AllBookingsPage'
 import ManageRoomsPage from './pages/admin/ManageRoomsPage'
@@ -100,6 +100,14 @@ export default function App() {
             }
           />
           <Route path="/bookings/:id" element={<BookingDetailPage />} />
+          <Route
+            path="/services"
+            element={
+              <RequireRole roles={['CUSTOMER', 'RECEPTION', 'ADMIN']}>
+                <ServicesPage />
+              </RequireRole>
+            }
+          />
           <Route
             path="/menu"
             element={

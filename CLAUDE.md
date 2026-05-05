@@ -195,6 +195,7 @@ src/pages/       → Страницы по ролям
 | `/login`, `/register` | публичные | `pages/auth/` |
 | `/dashboard` | все | `pages/DashboardPage.tsx` |
 | `/rooms` | CUSTOMER, ADMIN | `pages/customer/RoomsPage.tsx` |
+| `/services` | CUSTOMER, RECEPTION, ADMIN | `pages/customer/ServicesPage.tsx` |
 | `/bookings/new` | CUSTOMER | `pages/customer/BookingCreatePage.tsx` |
 | `/bookings/my` | CUSTOMER | `pages/customer/MyBookingsPage.tsx` |
 | `/menu` | CUSTOMER | `pages/customer/MenuPage.tsx` |
@@ -353,6 +354,21 @@ CONFIRMED → COMPLETED (checkOut → через checkIn)
 **Штраф при отмене клиентом:** 30% от `totalPrice` если `LocalDate.now().plusDays(1).isAfter(checkInDate)` (то есть заезд сегодня или завтра = в пределах 24 ч). Штраф не применяется если `isReception = true`.
 
 **Владелец:** `cancel` разрешён только если `requesterId == booking.customerId` OR `isReception = true`.
+
+## Тестовые данные (DataSeeder)
+
+При первом старте каждый сервис автоматически заполняет БД, если она пуста:
+
+| Сервис | Файл | Данные |
+|---|---|---|
+| customer-service | `config/DataSeeder.java` | 3 пользователя: customer, reception, admin |
+| room-service | `config/DataSeeder.java` | 10 номеров: 4×ORDINARY, 3×MIDDLE, 3×PREMIUM |
+| amenity-service | `config/DataSeeder.java` | 6 услуг: сауна, баня, бассейн, 2×бильярд, массаж |
+| dining-service | `config/DataSeeder.java` | 26 позиций меню: завтраки, обед, ужин, напитки, десерты |
+
+Все сидеры идемпотентны (`count() == 0` перед вставкой). Данные сохраняются в volume PostgreSQL — `docker-compose down` без `-v` их не удаляет.
+
+---
 
 ## Что ещё НЕ сделано (потенциальные задачи)
 

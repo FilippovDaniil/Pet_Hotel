@@ -31,8 +31,8 @@ public class RoomService {
     @Cacheable(value = "available-rooms", key = "#checkIn + '-' + #checkOut + '-' + #guests")
     public List<RoomDto> findAvailable(LocalDate checkIn, LocalDate checkOut, int guests) {
         log.info("Searching available rooms: checkIn={} checkOut={} guests={}", checkIn, checkOut, guests);
-        return roomRepository.findAvailableRooms(checkIn, checkOut, guests)
-                .stream().map(this::toDto).toList();
+        return new ArrayList<>(roomRepository.findAvailableRooms(checkIn, checkOut, guests)
+                .stream().map(this::toDto).toList());
     }
 
     public List<RoomDto> getAll() {
