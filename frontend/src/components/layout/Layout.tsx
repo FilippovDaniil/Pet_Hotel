@@ -1,4 +1,3 @@
-import React from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
 

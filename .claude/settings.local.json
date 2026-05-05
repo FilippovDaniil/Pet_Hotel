@@ -28,7 +28,15 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:forums.docker.com)",
-      "WebFetch(domain:java.testcontainers.org)"
+      "WebFetch(domain:java.testcontainers.org)",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(javac -cp C:/Users/MaxxPC/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.2.2/bd1b47ce6593b4d66a1f12e023b59dacc00db00a/spring-security-crypto-6.2.2.jar /tmp/hashgen/HashGen.java -d /tmp/hashgen)",
+      "Read(//tmp/**)",
+      "Bash(java -version)",
+      "Bash(java -cp '/tmp/hashgen;C:/Users/MaxxPC/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.2.2/bd1b47ce6593b4d66a1f12e023b59dacc00db00a/spring-security-crypto-6.2.2.jar' HashGen)",
+      "Bash(java -cp '.;C:/Users/MaxxPC/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.2.2/bd1b47ce6593b4d66a1f12e023b59dacc00db00a/spring-security-crypto-6.2.2.jar' HashGen)",
+      "Bash(java -cp .:C:/Users/MaxxPC/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.2.2/bd1b47ce6593b4d66a1f12e023b59dacc00db00a/spring-security-crypto-6.2.2.jar HashGen)"
     ]
   }
 }

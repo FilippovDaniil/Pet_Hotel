@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { billingApi } from '../../api/billing.api'
 import type { Invoice } from '../../types'
