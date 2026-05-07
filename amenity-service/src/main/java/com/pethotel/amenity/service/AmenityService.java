@@ -24,7 +24,9 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 public class AmenityService {
 
-    private static final long MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+    // Максимальный размер изображения — 2 МБ. Проверяем до чтения байтов, чтобы
+    // не держать большой файл в памяти при провале валидации.
+    private static final long MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB в байтах
 
     private final AmenityRepository amenityRepository;
 
@@ -73,6 +75,8 @@ public class AmenityService {
 
     @Transactional
     public void delete(Long id) {
+        // existsById() + deleteById(): можно было вызвать просто deleteById() и поймать EmptyResultDataAccessException,
+        // но явная проверка с NoSuchElementException даёт единообразный формат ошибки (через GlobalExceptionHandler).
         if (!amenityRepository.existsById(id)) {
             throw new NoSuchElementException("Amenity not found: " + id);
         }
@@ -80,30 +84,42 @@ public class AmenityService {
         log.info("Amenity deleted: id={}", id);
     }
 
+    // Загрузка изображения услуги.
+    // MultipartFile — Spring-абстракция над файлом из multipart/form-data запроса.
+    // Предоставляет: getSize(), getContentType(), getBytes(), getOriginalFilename().
     @Transactional
     public void uploadImage(Long id, MultipartFile file) {
+        // Проверяем размер ДО file.getBytes(): getSize() не читает байты в память.
         if (file.getSize() > MAX_IMAGE_SIZE) {
             throw new IllegalArgumentException("Image size must not exceed 2MB");
         }
         Amenity amenity = findAmenity(id);
         try {
+            // getBytes() читает весь файл в byte[]; допустимо для файлов до 2 МБ.
             amenity.setImageData(file.getBytes());
+            // Сохраняем MIME-тип ("image/jpeg", "image/png") для корректного Content-Type при отдаче.
             amenity.setImageMimeType(file.getContentType());
             amenityRepository.save(amenity);
             log.info("Image uploaded for amenity id={} size={}", id, file.getSize());
         } catch (IOException e) {
+            // IOException при getBytes() — редкая ситуация (проблема с потоком), оборачиваем в Runtime.
             throw new RuntimeException("Failed to read image data", e);
         }
     }
 
+    // Возвращает бинарное изображение с правильным Content-Type.
+    // ResponseEntity<byte[]> — напрямую возвращаем байты, а не JSON-объект.
     public ResponseEntity<byte[]> getImage(Long id) {
         Amenity amenity = findAmenity(id);
         if (amenity.getImageData() == null) {
+            // 404 без тела — изображение не загружено.
             return ResponseEntity.notFound().build();
         }
         HttpHeaders headers = new HttpHeaders();
+        // Если MIME-тип не сохранён (например, старые записи) — подставляем image/jpeg по умолчанию.
         String mimeType = amenity.getImageMimeType() != null ? amenity.getImageMimeType() : "image/jpeg";
         headers.setContentType(MediaType.parseMediaType(mimeType));
+        // new ResponseEntity<>(...) — конструктор с явным статусом (альтернатива ResponseEntity.ok(...)).
         return new ResponseEntity<>(amenity.getImageData(), headers, HttpStatus.OK);
     }
 
@@ -112,6 +128,7 @@ public class AmenityService {
                 .orElseThrow(() -> new NoSuchElementException("Amenity not found: " + id));
     }
 
+    // hasImage = imageData != null && length > 0 — защита от случаев сохранения пустого массива байтов.
     private AmenityDto toDto(Amenity a) {
         AmenityDto dto = new AmenityDto();
         dto.setId(a.getId());

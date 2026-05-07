@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Контроллер меню буфета.
+// GET-эндпоинты — публичные (доступны всем аутентифицированным пользователям).
+// POST/PUT/DELETE — только ADMIN (проверка роли на Gateway, не в коде сервиса).
 @RestController
 @RequestMapping("/api/menu")
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class MenuController {
 
     private final MenuService menuService;
 
+    // GET /api/menu — список всех позиций (включая недоступные для ADMIN; для клиентов — отдельный эндпоинт фильтрует).
     @GetMapping
     @Operation(summary = "Get all menu items")
     public ResponseEntity<List<MenuItemDto>> getAll() {
@@ -33,6 +37,7 @@ public class MenuController {
         return ResponseEntity.ok(menuService.getById(id));
     }
 
+    // X-User-Id получается, но не передаётся в сервис — зарезервирован для аудита/логирования.
     @PostMapping
     @Operation(summary = "Create menu item (ADMIN)")
     public ResponseEntity<MenuItemDto> create(

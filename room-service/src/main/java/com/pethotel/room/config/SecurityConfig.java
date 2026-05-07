@@ -7,6 +7,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+// Стандартная stateless-конфигурация для downstream-сервиса.
+// JWT проверяется только на API Gateway; room-service доверяет заголовкам X-User-Id и X-User-Role.
+// CSRF отключён (stateless JWT). Все запросы разрешены — аутентификация уже прошла на Gateway.
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

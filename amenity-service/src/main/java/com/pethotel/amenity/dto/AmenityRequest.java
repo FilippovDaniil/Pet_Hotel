@@ -9,9 +9,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+// DTO для создания и обновления услуги (POST/PUT /api/amenities).
+// Изображение загружается отдельным запросом (POST /{id}/image, multipart/form-data) —
+// смешивать JSON и бинарные данные в одном запросе неудобно для клиентов.
 @Data
 public class AmenityRequest {
 
+    // message = "..." — кастомное сообщение об ошибке вместо стандартного.
+    // Попадёт в ответ GlobalExceptionHandler: {"error": "Name must not be blank"}.
     @NotBlank(message = "Name must not be blank")
     private String name;
 
@@ -27,5 +32,7 @@ public class AmenityRequest {
 
     private String description;
 
+    // available = true по умолчанию — новая услуга сразу активна.
+    // Клиент может явно передать false, если услуга добавляется как "скоро откроется".
     private boolean available = true;
 }

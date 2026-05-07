@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+// Стандартная stateless-конфигурация downstream-сервиса.
+// Аутентификация выполнена на API Gateway; dining-service доверяет X-User-Id из заголовка.
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

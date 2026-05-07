@@ -1,56 +1,60 @@
 server:
-  port: 8080
+  port: 8080  # api-gateway: единственная точка входа; JWT-валидация + маршрутизация
 
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
+      # Каждый маршрут: id (имя), uri (куда проксировать), predicates (какие пути).
+      # Порядок не имеет значения — predicates не пересекаются (разные префиксы путей).
       routes:
         - id: customer-service
           uri: ${CUSTOMER_SERVICE_URL:http://customer-service:8081}
           predicates:
-            - Path=/api/auth/**, /api/customers/**
+            - Path=/api/auth/**, /api/customers/**   # регистрация, логин, профиль
 
         - id: room-service
           uri: ${ROOM_SERVICE_URL:http://room-service:8082}
           predicates:
-            - Path=/api/rooms/**
+            - Path=/api/rooms/**                     # CRUD номеров, поиск доступных
 
         - id: booking-service
           uri: ${BOOKING_SERVICE_URL:http://booking-service:8083}
           predicates:
-            - Path=/api/bookings/**
+            - Path=/api/bookings/**                  # создание/отмена/выезд бронирований
 
         - id: amenity-service
           uri: ${AMENITY_SERVICE_URL:http://amenity-service:8084}
           predicates:
-            - Path=/api/amenities/**
+            - Path=/api/amenities/**                 # справочник услуг + загрузка изображений
 
         - id: dining-service
           uri: ${DINING_SERVICE_URL:http://dining-service:8085}
           predicates:
-            - Path=/api/menu/**, /api/orders/**
+            - Path=/api/menu/**, /api/orders/**      # меню буфета и заказы
 
         - id: billing-service
           uri: ${BILLING_SERVICE_URL:http://billing-service:8086}
           predicates:
-            - Path=/api/invoices/**
+            - Path=/api/invoices/**                  # счета и оплата
 
         - id: support-service
           uri: ${SUPPORT_SERVICE_URL:http://support-service:8087}
           predicates:
-            - Path=/api/support/**
+            - Path=/api/support/**                   # чат поддержки клиент↔admin
 
+# JWT: должен совпадать с customer-service (один секрет на весь проект)
 jwt:
   secret: ${JWT_SECRET:very-secret-key-min-32-chars-long-here}
-  expiration-ms: 86400000
+  expiration-ms: 86400000  # 24 часа; gateway не выдаёт токены — значение нужно JwtUtil для проверки exp
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info  # gateway не имеет своей БД, metrics менее актуальны
 
 logging:
   config: classpath:logback-spring.xml

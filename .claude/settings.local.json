@@ -39,7 +39,8 @@
       "Bash(java -cp .:C:/Users/MaxxPC/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/6.2.2/bd1b47ce6593b4d66a1f12e023b59dacc00db00a/spring-security-crypto-6.2.2.jar HashGen)",
       "Bash(Get-ChildItem *)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(./gradlew test *)"
+      "Bash(./gradlew test *)",
+      "Bash(Test-Path *)"
     ]
   }
 }

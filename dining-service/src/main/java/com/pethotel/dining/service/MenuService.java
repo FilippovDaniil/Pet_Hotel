@@ -22,12 +22,17 @@ public class MenuService {
 
     private final MenuItemRepository menuItemRepository;
 
+    // @Cacheable("menu-items") — кэшируем весь список меню в Redis на 1 час (TTL задан в CacheConfig).
+    // Меню меняется редко (ADMIN добавляет позиции), поэтому долгий кэш оправдан.
+    // @CacheEvict на методах create/update/delete инвалидирует кэш при каждом изменении.
+    // new ArrayList<>() — см. аналогичный комментарий в RoomService: защита от неизменяемого List при десериализации из Redis.
     @Cacheable("menu-items")
     public List<MenuItemDto> getAll() {
         log.info("Fetching all menu items");
         return new ArrayList<>(menuItemRepository.findAll().stream().map(this::toDto).toList());
     }
 
+    // getById не кэшируется: вызывается редко (только при заказе), и результат уже в кэше getAll().
     public MenuItemDto getById(Long id) {
         log.info("Fetching menu item by id={}", id);
         return toDto(findItem(id));
@@ -69,6 +74,8 @@ public class MenuService {
         log.info("Menu item deleted: id={}", id);
     }
 
+    // public (не private): OrderService напрямую вызывает findItem для получения цены и проверки доступности.
+    // Дублировать логику "найти или 404" в OrderService не нужно.
     public MenuItem findItem(Long id) {
         return menuItemRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Menu item not found: " + id));

@@ -1,14 +1,16 @@
 server:
-  port: 8086
+  port: 8086  # billing-service: счета, накопление расходов, оплата
 
 spring:
   application:
     name: billing-service
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=billing}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,8 +19,12 @@ spring:
       hibernate:
         default_schema: billing
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    # billing-service — единственный сервис с одновременно consumer и producer:
+    # consumer: читает booking.created, booking.completed, order.created
+    # producer: публикует payment.processed после успешной оплаты
     consumer:
       group-id: billing-service
       auto-offset-reset: earliest

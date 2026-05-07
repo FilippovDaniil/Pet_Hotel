@@ -11,6 +11,16 @@ import java.util.List;
 
 public interface BookingAmenityRepository extends JpaRepository<BookingAmenity, Long> {
 
+    // Детектор пересечений временных слотов для конкретного типа услуги.
+    //
+    // Классическое условие перекрытия двух интервалов [A.start, A.end) и [B.start, B.end):
+    //   A.start < B.end  AND  B.start < A.end
+    //
+    // То есть: интервалы пересекаются тогда и только тогда, когда каждый из них начинается
+    // раньше, чем заканчивается другой. Этот предикат работает для всех видов пересечений
+    // (частичное, полное включение).
+    //
+    // Если список не пустой — слот занят, BookingService выбросит IllegalStateException.
     @Query("""
         SELECT ba FROM BookingAmenity ba
         WHERE ba.serviceType = :type

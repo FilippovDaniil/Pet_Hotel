@@ -1,14 +1,16 @@
 server:
-  port: 8082
+  port: 8082  # room-service: CRUD номеров, блокировка дат, кэш доступности
 
 spring:
   application:
     name: room-service
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=room}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,19 +19,24 @@ spring:
       hibernate:
         default_schema: room
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: room-service
+      group-id: room-service  # consumer group: каждый экземпляр получает подмножество партиций
+      # earliest: при первом запуске читать с начала топика (не пропускать старые события)
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
+        # Разрешить десериализацию только классов из common.event — защита от произвольных классов
         spring.json.trusted.packages: "com.pethotel.common.event"
+
   data:
     redis:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
+      # Используется для @Cacheable("available-rooms") TTL 5 мин и "room-prices" TTL 1 час
 
 springdoc:
   api-docs:

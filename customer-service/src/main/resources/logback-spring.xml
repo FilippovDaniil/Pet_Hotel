@@ -1,18 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!--
+        LogstashEncoder: пишет каждую строку лога как JSON-объект в stdout.
+        Promtail собирает stdout контейнера, отправляет в Loki.
+        Grafana визуализирует через LogQL.
+    -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- customFields: добавляет поле "service" в каждый JSON-лог.
+                 Promtail использует его как stream label → фильтрация в Grafana по сервису. -->
             <customFields>{"service":"customer-service"}</customFields>
             <fieldNames>
+                <!-- Переименовываем стандартные поля LogstashEncoder в читаемые имена.
+                     "@timestamp" → "timestamp" (без @), чтобы не конфликтовать с Elastic-конвенцией. -->
                 <timestamp>timestamp</timestamp>
                 <message>message</message>
                 <logger>logger</logger>
                 <thread>thread</thread>
+                <!-- [ignore]: поле levelValue (числовой уровень) не нужно — есть текстовый "level" -->
                 <levelValue>[ignore]</levelValue>
             </fieldNames>
         </encoder>
     </appender>
 
+    <!-- Корневой уровень INFO: DEBUG-сообщения Spring/Hibernate не попадают в лог -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>

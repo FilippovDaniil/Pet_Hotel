@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!--
+        LogstashEncoder: пишет каждую строку лога как JSON-объект в stdout.
+        Promtail собирает stdout контейнера, отправляет в Loki.
+        Grafana визуализирует через LogQL.
+    -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- customFields: добавляет поле "service" в каждый JSON-лог.
+                 Promtail использует его как stream label → фильтрация в Grafana по сервису. -->
             <customFields>{"service":"support-service"}</customFields>
             <fieldNames>
                 <timestamp>timestamp</timestamp>
@@ -12,6 +19,7 @@
             </fieldNames>
         </encoder>
     </appender>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>

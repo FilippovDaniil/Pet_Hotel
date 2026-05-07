@@ -12,6 +12,13 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import java.time.Duration;
 import java.util.Map;
 
+// Конфигурация Redis-кэша для dining-service.
+// Используется для @Cacheable("menu-items") в MenuService.
+//
+// Внимание: dining-service использует Redis двояко:
+//   1. RedisCacheManager (этот класс) — для Spring Cache (@Cacheable) — кэш меню, TTL 1 час.
+//   2. StringRedisTemplate (DailyLimitService) — прямой доступ к Redis — счётчики лимитов, TTL до полуночи.
+// Это два разных механизма одного Redis-соединения; ключи не пересекаются (разные пространства имён).
 @Configuration
 @EnableCaching
 public class CacheConfig {
@@ -24,8 +31,10 @@ public class CacheConfig {
 
         return RedisCacheManager.builder(factory)
                 .withInitialCacheConfigurations(Map.of(
-                        "menu-items", defaultConfig.entryTtl(Duration.ofHours(1))
+                    // Меню меняется редко — TTL 1 час. @CacheEvict сбрасывает при каждом изменении.
+                    "menu-items", defaultConfig.entryTtl(Duration.ofHours(1))
                 ))
+                // Остальные именованные кэши (если появятся) — TTL 30 минут.
                 .cacheDefaults(defaultConfig.entryTtl(Duration.ofMinutes(30)))
                 .build();
     }

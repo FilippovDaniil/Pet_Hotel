@@ -9,6 +9,17 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+// Kafka-событие: бронирование завершено (гость выехал).
+//
+// Producer:  booking-service (при переходе CONFIRMED → COMPLETED через checkOut)
+// Consumers:
+//   - billing-service → финализирует счёт: фиксирует roomTotal и amenitiesTotal,
+//                       добавляет пункты в Invoice и отправляет его клиенту
+//
+// Два финансовых поля разделены намеренно:
+//   roomTotal      — стоимость проживания (nights × pricePerNight)
+//   amenitiesTotal — стоимость всех дополнительных услуг (SAUNA, MASSAGE и т.д.)
+// billing-service суммирует их вместе с заказами из буфета (OrderCreatedEvent).
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,6 +31,6 @@ public class BookingCompletedEvent {
     private RoomClass roomClass;
     private LocalDate checkIn;
     private LocalDate checkOut;
-    private BigDecimal roomTotal;
-    private BigDecimal amenitiesTotal;
+    private BigDecimal roomTotal;       // итог за проживание
+    private BigDecimal amenitiesTotal;  // итог за дополнительные услуги
 }

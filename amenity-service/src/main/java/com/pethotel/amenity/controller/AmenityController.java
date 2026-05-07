@@ -36,12 +36,16 @@ public class AmenityController {
         return ResponseEntity.ok(amenityService.getById(id));
     }
 
+    // GET /api/amenities/type/SAUNA — фильтрация по типу услуги.
+    // @PathVariable ServiceType type — Spring конвертирует строку "SAUNA" в enum ServiceType.SAUNA.
     @GetMapping("/type/{type}")
     @Operation(summary = "Get amenities by type")
     public ResponseEntity<List<AmenityDto>> getByType(@PathVariable ServiceType type) {
         return ResponseEntity.ok(amenityService.getByType(type));
     }
 
+    // X-User-Id здесь получается, но не используется в сервисе — зарезервирован для логирования
+    // и потенциальной проверки роли в будущем (ADMIN-only операция).
     @PostMapping
     @Operation(summary = "Create amenity (ADMIN)")
     public ResponseEntity<AmenityDto> create(
@@ -68,6 +72,11 @@ public class AmenityController {
         return ResponseEntity.noContent().build();
     }
 
+    // POST /api/amenities/{id}/image — загрузка изображения.
+    // consumes = MULTIPART_FORM_DATA_VALUE — указывает, что запрос должен быть multipart/form-data.
+    //   Spring автоматически разбирает тело на части (поля + файлы).
+    // @RequestParam("file") MultipartFile file — извлекает файловую часть с именем "file".
+    //   "file" должно совпадать с именем поля в форме или именем части multipart-запроса.
     @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload amenity image (ADMIN)")
     public ResponseEntity<Void> uploadImage(
@@ -78,6 +87,9 @@ public class AmenityController {
         return ResponseEntity.ok().build();
     }
 
+    // GET /api/amenities/{id}/image — отдаёт бинарное изображение.
+    // ResponseEntity<byte[]>: тело ответа — сырые байты, Content-Type задаётся из сохранённого MIME-типа.
+    // Браузер/фронтенд отображает изображение напрямую, без промежуточной JSON-обёртки.
     @GetMapping("/{id}/image")
     @Operation(summary = "Get amenity image")
     public ResponseEntity<byte[]> getImage(@PathVariable Long id) {

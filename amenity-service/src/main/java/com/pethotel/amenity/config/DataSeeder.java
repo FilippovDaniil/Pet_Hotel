@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.List;
 
+// Заполняет справочник услуг при первом запуске.
+// 6 услуг — по одной на каждое значение ServiceType enum.
+// Цены соответствуют базовым ценам в AmenityPriceCalculator (booking-service):
+//   сауна/баня = 2000, бассейн = 500, бильярд = 600, массаж = 3000.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -41,6 +45,7 @@ public class DataSeeder {
         log.info("Seeded {} amenities", amenityRepository.count());
     }
 
+    // Фабричный метод: избегает повторения Amenity.builder()...build() для 6 записей.
     private Amenity amenity(String name, ServiceType type, String price, int maxMinutes, String description) {
         return Amenity.builder()
                 .name(name)

@@ -7,6 +7,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+// Стандартная stateless-конфигурация downstream-сервиса.
+// JWT проверяется только на API Gateway. Booking-service доверяет заголовкам
+// X-User-Id (для authorship-проверки при отмене) и X-User-Role (для isReception-флага).
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

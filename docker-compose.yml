@@ -7,15 +7,16 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: hotel
+      POSTGRES_DB: hotel           # единая БД; сервисы разделены по схемам (customer, room, ...)
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres-data:/var/lib/postgresql/data   # persistent volume: данные не теряются при down
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  # создаёт схемы до первого старта Hibernate
     ports:
       - "5432:5432"
     healthcheck:
+      # pg_isready: проверяет готовность PostgreSQL принимать подключения
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
@@ -27,17 +28,18 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "ping"]  # PONG = Redis готов
       interval: 10s
       timeout: 5s
       retries: 5
     restart: on-failure
 
   zookeeper:
+    # Zookeeper: координатор кластера Kafka; требуется Confluent Kafka 7.x
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: 2181  # порт для подключения Kafka
+      ZOOKEEPER_TICK_TIME: 2000    # базовая единица времени (мс) для сессий и heartbeat
     restart: on-failure
 
   kafka:
@@ -45,13 +47,13 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "9092:9092"  # доступен с хост-машины для локальной разработки
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_BROKER_ID: 1                          # уникальный ID брокера в кластере
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181     # адрес Zookeeper внутри Docker-сети
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092  # адрес, который брокер сообщает клиентам
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1   # 1 = один брокер (dev); в prod >= 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"     # топики создаются автоматически при первой записи
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
       interval: 15s
@@ -62,39 +64,44 @@ services:
   # ── Observability ────────────────────────────────────────────────────────────
 
   loki:
+    # Loki: хранилище логов от Grafana Labs; принимает потоки от Promtail
     image: grafana/loki:2.9.0
     ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+      - "3100:3100"  # HTTP API: push (Promtail) + query (Grafana)
+    command: -config.file=/etc/loki/local-config.yaml  # встроенный конфиг для single-node dev
     restart: on-failure
 
   promtail:
+    # Promtail: агент сбора логов; читает stdout контейнеров через Docker socket
     image: grafana/promtail:2.9.0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock          # чтение метаданных контейнеров (labels)
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # чтение логов контейнеров (read-only)
+      - ./promtail-config.yml:/etc/promtail/config.yml     # конфиг: scrape_configs + pipeline_stages
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
     restart: on-failure
 
   grafana:
+    # Grafana: визуализация; дашборд "Pet Hotel — Logs" provisioned автоматически
     image: grafana/grafana:10.2.0
     ports:
-      - "3000:3000"
+      - "3000:3000"  # UI: http://localhost:3000 (admin/admin)
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_DATE_FORMATS_DEFAULT_TIMEZONE: browser
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: browser  # время логов в часовом поясе браузера
     volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana                       # persistent: дашборды и настройки
+      - ./grafana/provisioning:/etc/grafana/provisioning    # auto-provision: Loki datasource + дашборд
     depends_on:
       - loki
     restart: on-failure
 
   # ── Microservices ────────────────────────────────────────────────────────────
+  # context: . — весь корень репозитория; Gradle multi-project видит :common и все сервисы.
+  # condition: service_healthy — сервис стартует только после прохождения healthcheck инфраструктуры.
 
   customer-service:
     build:
@@ -129,7 +136,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_HOST: redis        # кэш available-rooms (5 мин) и room-prices (1 час)
       JWT_SECRET: very-secret-key-min-32-chars-long-here-ok
     depends_on:
       postgres:
@@ -195,7 +202,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_HOST: redis        # кэш меню (1 час) + счётчики лимитов до полуночи
       JWT_SECRET: very-secret-key-min-32-chars-long-here-ok
     depends_on:
       postgres:
@@ -239,6 +246,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Redis не нужен: support-service не использует кэш и не считает лимиты
     depends_on:
       postgres:
         condition: service_healthy
@@ -251,8 +259,9 @@ services:
       context: .
       dockerfile: api-gateway/Dockerfile
     ports:
-      - "8080:8080"
+      - "8080:8080"  # единственный публичный порт; все запросы фронтенда идут сюда
     environment:
+      # URL'ы downstream-сервисов используются в spring.cloud.gateway.routes (application.yml)
       CUSTOMER_SERVICE_URL: http://customer-service:8081
       ROOM_SERVICE_URL: http://room-service:8082
       BOOKING_SERVICE_URL: http://booking-service:8083
@@ -260,7 +269,7 @@ services:
       DINING_SERVICE_URL: http://dining-service:8085
       BILLING_SERVICE_URL: http://billing-service:8086
       SUPPORT_SERVICE_URL: http://support-service:8087
-      JWT_SECRET: very-secret-key-min-32-chars-long-here-ok
+      JWT_SECRET: very-secret-key-min-32-chars-long-here-ok  # должен совпадать с customer-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -272,16 +281,17 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend   # отдельный context: только frontend/ (Vite + React)
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "80:80"   # nginx отдаёт статику и проксирует /api/* → api-gateway:8080
     depends_on:
       - api-gateway
     restart: on-failure
 
 # ── Volumes ──────────────────────────────────────────────────────────────────
+# Named volumes: данные сохраняются при `docker-compose down` (но не при `down -v`)
 
 volumes:
-  postgres-data:
-  grafana-data:
+  postgres-data:   # таблицы, данные сидеров — переживают перезапуск контейнеров
+  grafana-data:    # дашборды, настройки Grafana — переживают перезапуск

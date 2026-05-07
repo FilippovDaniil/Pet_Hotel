@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.List;
 
+// Заполняет меню буфета при первом запуске: 26 позиций по 5 категориям.
+// Категории: Завтрак (6), Обед (6), Ужин (4), Напитки (6), Десерты (4).
+// Цены в рублях: от 120 (вода) до 1500 (стейк).
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -63,6 +66,7 @@ public class DataSeeder {
         log.info("Seeded {} menu items", menuItemRepository.count());
     }
 
+    // Фабричный метод: все позиции изначально доступны (available = true).
     private MenuItem item(String name, String price, String category) {
         return MenuItem.builder()
                 .name(name)

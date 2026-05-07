@@ -1,14 +1,16 @@
 server:
-  port: 8087
+  port: 8087  # support-service: переписка клиент↔admin, чат поддержки
 
 spring:
   application:
     name: support-service
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=support}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,7 +19,11 @@ spring:
       hibernate:
         default_schema: support
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
+    # support-service объявляет Kafka в зависимостях (Spring Boot auto-config),
+    # но не использует KafkaTemplate и не слушает топики.
+    # Блок нужен чтобы контекст стартовал без ошибок конфигурации (lazy connection).
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 springdoc:

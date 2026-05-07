@@ -7,6 +7,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+// DTO для создания и обновления позиции меню (POST/PUT /api/menu).
 @Data
 public class MenuItemRequest {
 
@@ -20,5 +21,6 @@ public class MenuItemRequest {
     @NotBlank(message = "Category must not be blank")
     private String category;
 
+    // available = true по умолчанию — новая позиция сразу видна в меню.
     private boolean available = true;
 }

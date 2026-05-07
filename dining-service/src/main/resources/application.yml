@@ -1,14 +1,16 @@
 server:
-  port: 8085
+  port: 8085  # dining-service: меню буфета, дневные лимиты, заказы
 
 spring:
   application:
     name: dining-service
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=dining}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,6 +19,7 @@ spring:
       hibernate:
         default_schema: dining
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -24,11 +27,16 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+
   data:
     redis:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
+      # Используется двумя механизмами:
+      # 1. RedisCacheManager (@Cacheable "menu-items") — TTL 1 час
+      # 2. StringRedisTemplate (DailyLimitService, ключ dining:limit:{id}:{date}) — TTL до полуночи
 
+# WebClient: dining → booking-service (получить roomClass для расчёта лимита буфета)
 services:
   booking-service:
     url: ${BOOKING_SERVICE_URL:http://booking-service:8083}

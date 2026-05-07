@@ -1,45 +1,55 @@
 server:
-  port: 8081
+  port: 8081  # customer-service: регистрация, логин, JWT
 
 spring:
   application:
-    name: customer-service
+    name: customer-service  # используется Promtail как label, Spring Cloud как service-id
+
   datasource:
+    # ${ENV:default} — переменная среды с fallback для локального запуска без Docker
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=customer}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: update  # Hibernate создаёт/обновляет таблицы; НЕ использовать в prod — заменить на Flyway
+    show-sql: false     # включать только при отладке SQL-запросов
     properties:
       hibernate:
-        default_schema: customer
+        default_schema: customer  # все таблицы создаются в схеме customer (не в public)
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
+        # false: не добавлять заголовок __TypeId__ в Kafka-сообщения
+        # Потребители не зависят от имени класса продюсера — важно для эволюции схем
         spring.json.add.type.headers: false
 
+# JWT: секрет и TTL. Тот же секрет должен быть в api-gateway (единственный валидатор)
 jwt:
   secret: ${JWT_SECRET:very-secret-key-min-32-chars-long-here}
-  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 86400000 мс = 24 часа
 
+# Swagger UI доступен напрямую: http://localhost:8081/swagger-ui.html
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
 
+# Actuator: только health/info/metrics (не открываем /env, /beans и т.д.)
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
 
+# Логирование через Logstash JSON encoder (logback-spring.xml) → Promtail → Loki
 logging:
   config: classpath:logback-spring.xml

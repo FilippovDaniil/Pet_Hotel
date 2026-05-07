@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+// Стандартная stateless-конфигурация downstream-сервиса.
+// Аутентификация и авторизация выполнены на API Gateway; amenity-service только доверяет заголовку X-User-Id.
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
