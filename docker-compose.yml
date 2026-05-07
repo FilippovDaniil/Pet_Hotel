@@ -71,7 +71,7 @@ services:
   promtail:
     image: grafana/promtail:2.9.0
     volumes:
-      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
@@ -85,8 +85,11 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: browser
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
     restart: on-failure
