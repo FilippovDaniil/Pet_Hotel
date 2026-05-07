@@ -16,8 +16,10 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [payingId, setPayingId] = useState<number | null>(null)
+  const [successMsg, setSuccessMsg] = useState('')
 
-  useEffect(() => {
+  const fetchInvoices = () => {
     billingApi
       .getMyInvoices()
       .then((data) => {
@@ -28,7 +30,27 @@ export default function InvoicesPage() {
         setError('Не удалось загрузить счета')
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchInvoices()
   }, [])
+
+  const handlePay = async (bookingId: number) => {
+    setPayingId(bookingId)
+    setError('')
+    try {
+      await billingApi.pay(bookingId)
+      setSuccessMsg('Счёт успешно оплачен!')
+      setTimeout(() => setSuccessMsg(''), 4000)
+      fetchInvoices()
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data || 'Ошибка оплаты'
+      setError(typeof msg === 'string' ? msg : 'Ошибка оплаты')
+    } finally {
+      setPayingId(null)
+    }
+  }
 
   const totalPaid = invoices
     .filter((i) => i.status === 'PAID')
@@ -50,7 +72,12 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {/* Summary cards */}
+      {successMsg && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">
+          {successMsg}
+        </div>
+      )}
+
       {invoices.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="card flex items-center gap-4">
@@ -98,7 +125,7 @@ export default function InvoicesPage() {
         {invoices.map((invoice) => (
           <div key={invoice.id} className="card hover:shadow-md transition-shadow">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="font-bold text-gray-900">Счёт #{invoice.id}</h3>
                   <span
@@ -140,12 +167,23 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
-              <Link
-                to={`/bookings/${invoice.bookingId}`}
-                className="btn-secondary text-sm flex-shrink-0"
-              >
-                Подробности брони →
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center flex-shrink-0">
+                {invoice.status === 'UNPAID' && (
+                  <button
+                    className="btn-success text-sm"
+                    onClick={() => handlePay(invoice.bookingId)}
+                    disabled={payingId === invoice.bookingId}
+                  >
+                    {payingId === invoice.bookingId ? 'Оплата...' : 'Оплатить'}
+                  </button>
+                )}
+                <Link
+                  to={`/bookings/${invoice.bookingId}`}
+                  className="btn-secondary text-sm"
+                >
+                  Бронь →
+                </Link>
+              </div>
             </div>
           </div>
         ))}

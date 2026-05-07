@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { amenityApi } from '../../api/amenity.api'
 import type { Amenity, AmenityRequest, ServiceType } from '../../types'
 import { SERVICE_TYPE_LABELS } from '../../types'
@@ -17,6 +17,8 @@ const defaultForm = (): AmenityRequest => ({
   type: 'SAUNA',
   defaultPrice: 500,
   maxDurationMinutes: 60,
+  description: '',
+  available: true,
 })
 
 function Spinner() {
@@ -41,23 +43,46 @@ function AmenityModal({ amenity, onClose, onSaved }: AmenityModalProps) {
           type: amenity.type,
           defaultPrice: amenity.defaultPrice,
           maxDurationMinutes: amenity.maxDurationMinutes,
+          description: amenity.description ?? '',
+          available: amenity.available,
         }
       : defaultForm()
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    amenity?.hasImage ? `/api/amenities/${amenity.id}/image` : null
+  )
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        name === 'defaultPrice' || name === 'maxDurationMinutes'
-          ? Number(value)
-          : value,
-    }))
+    const { name, value, type } = e.target
+    if (type === 'checkbox') {
+      setForm((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }))
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]:
+          name === 'defaultPrice' || name === 'maxDurationMinutes'
+            ? Number(value)
+            : value,
+      }))
+    }
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Размер изображения не должен превышать 2 МБ')
+      return
+    }
+    setError('')
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,10 +90,16 @@ function AmenityModal({ amenity, onClose, onSaved }: AmenityModalProps) {
     setError('')
     setLoading(true)
     try {
+      let savedId: number
       if (amenity) {
         await amenityApi.update(amenity.id, form)
+        savedId = amenity.id
       } else {
-        await amenityApi.create(form)
+        const created = await amenityApi.create(form)
+        savedId = created.id
+      }
+      if (imageFile) {
+        await amenityApi.uploadImage(savedId, imageFile)
       }
       onSaved()
     } catch (err: any) {
@@ -81,8 +112,8 @@ function AmenityModal({ amenity, onClose, onSaved }: AmenityModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 overflow-y-auto py-8">
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
         <h3 className="text-lg font-bold text-gray-900 mb-5">
           {amenity ? 'Редактировать услугу' : 'Добавить услугу'}
         </h3>
@@ -129,36 +160,102 @@ function AmenityModal({ amenity, onClose, onSaved }: AmenityModalProps) {
             </select>
           </div>
 
-          <div>
-            <label className="label" htmlFor="amenity-price">
-              Цена по умолчанию (₽)
-            </label>
-            <input
-              id="amenity-price"
-              name="defaultPrice"
-              type="number"
-              className="input"
-              value={form.defaultPrice}
-              onChange={handleChange}
-              min={0}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label" htmlFor="amenity-price">
+                Цена по умолчанию (₽)
+              </label>
+              <input
+                id="amenity-price"
+                name="defaultPrice"
+                type="number"
+                className="input"
+                value={form.defaultPrice}
+                onChange={handleChange}
+                min={0.01}
+                step={0.01}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="amenity-duration">
+                Длительность (мин)
+              </label>
+              <input
+                id="amenity-duration"
+                name="maxDurationMinutes"
+                type="number"
+                className="input"
+                value={form.maxDurationMinutes}
+                onChange={handleChange}
+                min={1}
+                required
+              />
+            </div>
           </div>
 
           <div>
-            <label className="label" htmlFor="amenity-duration">
-              Макс. длительность (минуты)
+            <label className="label" htmlFor="amenity-desc">
+              Описание
             </label>
-            <input
-              id="amenity-duration"
-              name="maxDurationMinutes"
-              type="number"
-              className="input"
-              value={form.maxDurationMinutes}
+            <textarea
+              id="amenity-desc"
+              name="description"
+              className="input min-h-[80px] resize-y"
+              value={form.description}
               onChange={handleChange}
-              min={1}
-              required
+              placeholder="Расскажите об услуге..."
+              maxLength={2000}
             />
+            <p className="text-xs text-gray-400 mt-1 text-right">
+              {(form.description?.length ?? 0)}/2000
+            </p>
+          </div>
+
+          <div>
+            <label className="label">Фотография (до 2 МБ)</label>
+            {imagePreview && (
+              <div className="mb-2 relative inline-block">
+                <img
+                  src={imagePreview}
+                  alt="Предпросмотр"
+                  className="w-full max-h-40 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow text-gray-500 hover:text-red-600"
+                  onClick={() => {
+                    setImagePreview(null)
+                    setImageFile(null)
+                    if (fileRef.current) fileRef.current.value = ''
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+              onChange={handleImageChange}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <input
+              id="amenity-available"
+              name="available"
+              type="checkbox"
+              className="w-4 h-4 text-primary-600 rounded border-gray-300"
+              checked={form.available}
+              onChange={handleChange}
+            />
+            <label htmlFor="amenity-available" className="text-sm font-medium text-gray-700">
+              Услуга доступна для заказа
+            </label>
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -257,10 +354,12 @@ export default function ManageAmenitiesPage() {
             <thead className="bg-gray-50">
               <tr>
                 {[
+                  'Фото',
                   'Название',
                   'Тип',
-                  'Цена по умолч.',
-                  'Макс. длит. (мин)',
+                  'Цена',
+                  'Длит. (мин)',
+                  'Доступна',
                   'Действия',
                 ].map((h) => (
                   <th
@@ -275,8 +374,26 @@ export default function ManageAmenitiesPage() {
             <tbody className="divide-y divide-gray-100 bg-white">
               {amenities.map((amenity) => (
                 <tr key={amenity.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-semibold text-gray-900">
-                    {amenity.name}
+                  <td className="px-4 py-3">
+                    {amenity.hasImage ? (
+                      <img
+                        src={`/api/amenities/${amenity.id}/image`}
+                        alt={amenity.name}
+                        className="w-12 h-12 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+                        Нет
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-gray-900">{amenity.name}</div>
+                    {amenity.description && (
+                      <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">
+                        {amenity.description}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full font-medium">
@@ -288,6 +405,17 @@ export default function ManageAmenitiesPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {amenity.maxDurationMinutes}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        amenity.available
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-600'
+                      }`}
+                    >
+                      {amenity.available ? 'Да' : 'Нет'}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">

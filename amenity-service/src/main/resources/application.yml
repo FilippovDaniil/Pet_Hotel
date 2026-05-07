@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: amenity-service
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hotel?currentSchema=amenity}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

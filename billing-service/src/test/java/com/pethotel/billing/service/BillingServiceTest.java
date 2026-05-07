@@ -54,13 +54,19 @@ class BillingServiceTest {
     }
 
     @Test
-    void createInvoice_alreadyExists_isIdempotent() {
+    void createInvoice_alreadyExists_updatesAmountsAndSaves() {
+        // Invoice created on booking.created; booking.completed finalizes the amounts
         when(invoiceRepository.findByBookingId(1L))
                 .thenReturn(Optional.of(invoice(1L, 1L, InvoiceStatus.UNPAID)));
+        when(invoiceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        billingService.createInvoice(completedEvent(1L, 1L, new BigDecimal("5000"), BigDecimal.ZERO));
+        billingService.createInvoice(completedEvent(1L, 1L, new BigDecimal("5000"), new BigDecimal("1500")));
 
-        verify(invoiceRepository, never()).save(any());
+        ArgumentCaptor<Invoice> captor = ArgumentCaptor.forClass(Invoice.class);
+        verify(invoiceRepository).save(captor.capture());
+        assertThat(captor.getValue().getRoomAmount()).isEqualByComparingTo("5000");
+        assertThat(captor.getValue().getAmenitiesAmount()).isEqualByComparingTo("1500");
+        assertThat(captor.getValue().getTotalAmount()).isEqualByComparingTo("6500");
     }
 
     @Test

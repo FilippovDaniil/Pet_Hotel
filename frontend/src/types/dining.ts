@@ -1,3 +1,15 @@
+export type DeliveryType = 'ROOM_DELIVERY' | 'DINING_ROOM'
+
+export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = {
+  ROOM_DELIVERY: 'Доставка в номер',
+  DINING_ROOM: 'За столиком в столовой',
+}
+
+export const DELIVERY_TYPE_ICONS: Record<DeliveryType, string> = {
+  ROOM_DELIVERY: '🛏️',
+  DINING_ROOM: '🍽️',
+}
+
 export interface MenuItem {
   id: number
   name: string
@@ -18,15 +30,18 @@ export interface Order {
   bookingId: number
   customerId: number
   menuItemId: number
+  menuItemName: string
   quantity: number
   totalAmount: number
   orderTime: string
   paidByLimit: number
   extraCharge: number
+  deliveryType: DeliveryType
 }
 
 export interface OrderRequest {
   bookingId: number
   menuItemId: number
   quantity: number
+  deliveryType: DeliveryType
 }

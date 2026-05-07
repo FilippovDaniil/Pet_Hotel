@@ -75,10 +75,12 @@ public class OrderService {
                 .bookingId(request.getBookingId())
                 .customerId(customerId)
                 .menuItemId(request.getMenuItemId())
+                .menuItemName(menuItem.getName())
                 .quantity(request.getQuantity())
                 .totalAmount(totalAmount)
                 .paidByLimit(paidByLimit)
                 .extraCharge(extraCharge)
+                .deliveryType(request.getDeliveryType())
                 .build();
 
         order = orderRepository.save(order);
@@ -108,6 +110,11 @@ public class OrderService {
         return orderRepository.findByBookingId(bookingId).stream().map(this::toDto).toList();
     }
 
+    public List<OrderDto> getByCustomerId(Long customerId) {
+        log.info("Fetching orders for customerId={}", customerId);
+        return orderRepository.findByCustomerIdOrderByOrderTimeDesc(customerId).stream().map(this::toDto).toList();
+    }
+
     private RoomClass fetchRoomClass(Long bookingId) {
         try {
             BookingResponse response = webClientBuilder.build()
@@ -133,11 +140,13 @@ public class OrderService {
         dto.setBookingId(order.getBookingId());
         dto.setCustomerId(order.getCustomerId());
         dto.setMenuItemId(order.getMenuItemId());
+        dto.setMenuItemName(order.getMenuItemName());
         dto.setQuantity(order.getQuantity());
         dto.setTotalAmount(order.getTotalAmount());
         dto.setOrderTime(order.getOrderTime());
         dto.setPaidByLimit(order.getPaidByLimit());
         dto.setExtraCharge(order.getExtraCharge());
+        dto.setDeliveryType(order.getDeliveryType());
         return dto;
     }
 

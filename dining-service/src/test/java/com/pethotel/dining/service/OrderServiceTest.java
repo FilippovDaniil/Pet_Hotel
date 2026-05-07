@@ -4,6 +4,7 @@ import com.pethotel.common.enums.RoomClass;
 import com.pethotel.common.kafka.KafkaTopics;
 import com.pethotel.dining.dto.OrderDto;
 import com.pethotel.dining.dto.OrderRequest;
+import com.pethotel.dining.entity.DeliveryType;
 import com.pethotel.dining.entity.MenuItem;
 import com.pethotel.dining.entity.Order;
 import com.pethotel.dining.repository.OrderRepository;
@@ -58,7 +59,7 @@ class OrderServiceTest {
         when(dailyLimitService.getDailySpent(1L)).thenReturn(BigDecimal.ZERO);
         stubSave();
 
-        OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 2)); // total = 1000
+        OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 2));
 
         assertThat(result.getPaidByLimit()).isEqualByComparingTo("0");
         assertThat(result.getExtraCharge()).isEqualByComparingTo("1000");
@@ -120,6 +121,51 @@ class OrderServiceTest {
         assertThat(result.getExtraCharge()).isEqualByComparingTo("0");
     }
 
+    // ── delivery type / menuItemName ──────────────────────────────────────────────
+
+    @Test
+    void createOrder_storesMenuItemNameFromMenuItem() {
+        stubRoomClass(RoomClass.MIDDLE);
+        when(menuService.findItem(1L)).thenReturn(menuItem(1L, new BigDecimal("200"), true));
+        when(dailyLimitService.getDailyLimit(RoomClass.MIDDLE)).thenReturn(new BigDecimal("1000"));
+        when(dailyLimitService.getDailySpent(1L)).thenReturn(BigDecimal.ZERO);
+        stubSave();
+
+        OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 1));
+
+        assertThat(result.getMenuItemName()).isEqualTo("Test Item");
+    }
+
+    @Test
+    void createOrder_storesDiningRoomDeliveryType() {
+        stubRoomClass(RoomClass.MIDDLE);
+        when(menuService.findItem(1L)).thenReturn(menuItem(1L, new BigDecimal("200"), true));
+        when(dailyLimitService.getDailyLimit(RoomClass.MIDDLE)).thenReturn(new BigDecimal("1000"));
+        when(dailyLimitService.getDailySpent(1L)).thenReturn(BigDecimal.ZERO);
+        stubSave();
+
+        OrderRequest req = orderRequest(1L, 1L, 1);
+        req.setDeliveryType(DeliveryType.DINING_ROOM);
+        OrderDto result = orderService.createOrder(1L, req);
+
+        assertThat(result.getDeliveryType()).isEqualTo(DeliveryType.DINING_ROOM);
+    }
+
+    @Test
+    void createOrder_storesRoomDeliveryType() {
+        stubRoomClass(RoomClass.PREMIUM);
+        when(menuService.findItem(1L)).thenReturn(menuItem(1L, new BigDecimal("100"), true));
+        when(dailyLimitService.getDailyLimit(RoomClass.PREMIUM)).thenReturn(new BigDecimal("3000"));
+        when(dailyLimitService.getDailySpent(1L)).thenReturn(BigDecimal.ZERO);
+        stubSave();
+
+        OrderRequest req = orderRequest(1L, 1L, 1);
+        req.setDeliveryType(DeliveryType.ROOM_DELIVERY);
+        OrderDto result = orderService.createOrder(1L, req);
+
+        assertThat(result.getDeliveryType()).isEqualTo(DeliveryType.ROOM_DELIVERY);
+    }
+
     // ── validation ───────────────────────────────────────────────────────────────
 
     @Test
@@ -158,6 +204,41 @@ class OrderServiceTest {
         assertThat(result).hasSize(2);
     }
 
+    // ── getByCustomerId ──────────────────────────────────────────────────────────
+
+    @Test
+    void getByCustomerId_returnsMappedList() {
+        when(orderRepository.findByCustomerIdOrderByOrderTimeDesc(10L))
+                .thenReturn(List.of(order(1L), order(2L), order(3L)));
+
+        List<OrderDto> result = orderService.getByCustomerId(10L);
+
+        assertThat(result).hasSize(3);
+    }
+
+    @Test
+    void getByCustomerId_emptyList_returnsEmpty() {
+        when(orderRepository.findByCustomerIdOrderByOrderTimeDesc(99L))
+                .thenReturn(List.of());
+
+        List<OrderDto> result = orderService.getByCustomerId(99L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getByCustomerId_mapsMenuItemNameAndDeliveryType() {
+        Order o = order(1L);
+        o.setMenuItemName("Борщ");
+        o.setDeliveryType(DeliveryType.ROOM_DELIVERY);
+        when(orderRepository.findByCustomerIdOrderByOrderTimeDesc(1L)).thenReturn(List.of(o));
+
+        List<OrderDto> result = orderService.getByCustomerId(1L);
+
+        assertThat(result.get(0).getMenuItemName()).isEqualTo("Борщ");
+        assertThat(result.get(0).getDeliveryType()).isEqualTo(DeliveryType.ROOM_DELIVERY);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────
 
     private void stubRoomClass(RoomClass roomClass) {
@@ -180,6 +261,7 @@ class OrderServiceTest {
         req.setBookingId(bookingId);
         req.setMenuItemId(menuItemId);
         req.setQuantity(quantity);
+        req.setDeliveryType(DeliveryType.DINING_ROOM);
         return req;
     }
 
@@ -193,8 +275,10 @@ class OrderServiceTest {
     private Order order(Long id) {
         return Order.builder()
                 .id(id).bookingId(1L).customerId(1L).menuItemId(1L)
+                .menuItemName("Test Item")
                 .quantity(1).totalAmount(new BigDecimal("100"))
                 .paidByLimit(new BigDecimal("100")).extraCharge(BigDecimal.ZERO)
+                .deliveryType(DeliveryType.DINING_ROOM)
                 .build();
     }
 }

@@ -6,6 +6,9 @@ export interface Amenity {
   type: ServiceType
   defaultPrice: number
   maxDurationMinutes: number
+  description?: string
+  available: boolean
+  hasImage: boolean
 }
 
 export interface AmenityRequest {
@@ -13,4 +16,6 @@ export interface AmenityRequest {
   type: ServiceType
   defaultPrice: number
   maxDurationMinutes: number
+  description?: string
+  available: boolean
 }

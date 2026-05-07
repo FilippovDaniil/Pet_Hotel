@@ -17,4 +17,12 @@ export const amenityApi = {
 
   delete: (id: number) =>
     client.delete(`/amenities/${id}`),
+
+  uploadImage: (id: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return client.post(`/amenities/${id}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

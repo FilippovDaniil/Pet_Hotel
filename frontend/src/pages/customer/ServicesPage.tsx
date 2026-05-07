@@ -14,7 +14,7 @@ const SERVICE_ICONS: Record<ServiceType, string> = {
   MASSAGE:      '💆',
 }
 
-const SERVICE_DESCRIPTIONS: Record<ServiceType, string> = {
+const FALLBACK_DESCRIPTIONS: Record<ServiceType, string> = {
   SAUNA:        'Финская сауна с парилкой, бассейном для охлаждения и зоной отдыха. Максимальная температура 90°C.',
   BATH:         'Традиционная русская баня на дровах с берёзовыми вениками. Идеально для восстановления после дороги.',
   POOL:         'Подогреваемый бассейн 25×10 м с детской зоной. Работает ежедневно.',
@@ -36,6 +36,73 @@ const CLASS_COLORS = {
   ORDINARY: 'bg-gray-100 text-gray-700',
   MIDDLE:   'bg-blue-100 text-blue-700',
   PREMIUM:  'bg-amber-100 text-amber-700',
+}
+
+function AmenityCard({ amenity }: { amenity: Amenity }) {
+  const type = amenity.type as ServiceType
+  const prices = PRICE_BY_CLASS[type]
+  const description = amenity.description || FALLBACK_DESCRIPTIONS[type]
+
+  return (
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col ${!amenity.available ? 'opacity-60' : ''}`}>
+      {amenity.hasImage ? (
+        <div className="relative h-44">
+          <img
+            src={`/api/amenities/${amenity.id}/image`}
+            alt={amenity.name}
+            className="w-full h-full object-cover"
+          />
+          {!amenity.available && (
+            <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+              <span className="text-white text-sm font-semibold px-3 py-1 bg-gray-800 rounded-full">
+                Недоступно
+              </span>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div className="flex items-start gap-3">
+          {!amenity.hasImage && (
+            <span className="text-4xl leading-none mt-0.5">{SERVICE_ICONS[type] ?? '🏨'}</span>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-gray-900 text-lg leading-tight">{amenity.name}</h3>
+              {!amenity.available && (
+                <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                  Недоступно
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-gray-500">{SERVICE_TYPE_LABELS[type]}</span>
+          </div>
+        </div>
+
+        {description && (
+          <p className="text-sm text-gray-600 flex-1">{description}</p>
+        )}
+
+        <div className="text-xs text-gray-500">
+          Длительность: <span className="font-medium text-gray-700">{amenity.maxDurationMinutes} мин</span>
+        </div>
+
+        {prices && (
+          <div className="border-t pt-3 grid grid-cols-3 gap-2 text-xs">
+            {(['ORDINARY', 'MIDDLE', 'PREMIUM'] as const).map((cls) => (
+              <div key={cls} className="text-center">
+                <span className={`inline-block px-2 py-0.5 rounded font-medium mb-1 ${CLASS_COLORS[cls]}`}>
+                  {cls === 'ORDINARY' ? 'Стандарт' : cls === 'MIDDLE' ? 'Комфорт' : 'Премиум'}
+                </span>
+                <div className="font-semibold text-gray-800">{prices[cls]}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export default function ServicesPage() {
@@ -76,40 +143,9 @@ export default function ServicesPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {amenities.map((amenity) => {
-              const type = amenity.type as ServiceType
-              const prices = PRICE_BY_CLASS[type]
-              return (
-                <div key={amenity.id} className="card flex flex-col gap-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-4xl">{SERVICE_ICONS[type] ?? '🏨'}</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-lg">{amenity.name}</h3>
-                      <span className="text-xs text-gray-500">{SERVICE_TYPE_LABELS[type]}</span>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-gray-600">{SERVICE_DESCRIPTIONS[type]}</p>
-
-                  <div className="text-xs text-gray-500">
-                    Длительность: <span className="font-medium text-gray-700">{amenity.maxDurationMinutes} мин</span>
-                  </div>
-
-                  {prices && (
-                    <div className="border-t pt-3 grid grid-cols-3 gap-2 text-xs">
-                      {(['ORDINARY', 'MIDDLE', 'PREMIUM'] as const).map((cls) => (
-                        <div key={cls} className="text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded font-medium mb-1 ${CLASS_COLORS[cls]}`}>
-                            {cls === 'ORDINARY' ? 'Стандарт' : cls === 'MIDDLE' ? 'Комфорт' : 'Премиум'}
-                          </span>
-                          <div className="font-semibold text-gray-800">{prices[cls]}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            {amenities.map((amenity) => (
+              <AmenityCard key={amenity.id} amenity={amenity} />
+            ))}
           </div>
 
           <div className="card bg-blue-50 border-blue-200 text-sm text-blue-800">

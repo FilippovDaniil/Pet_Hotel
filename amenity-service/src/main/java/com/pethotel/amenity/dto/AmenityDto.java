@@ -12,4 +12,7 @@ public class AmenityDto {
     private ServiceType type;
     private BigDecimal defaultPrice;
     private int maxDurationMinutes;
+    private String description;
+    private boolean available;
+    private boolean hasImage;
 }

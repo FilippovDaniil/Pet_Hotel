@@ -13,4 +13,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByBookingId(Long bookingId);
 
     List<Order> findByCustomerIdAndOrderTimeBetween(Long customerId, LocalDateTime start, LocalDateTime end);
+
+    List<Order> findByCustomerIdOrderByOrderTimeDesc(Long customerId);
 }

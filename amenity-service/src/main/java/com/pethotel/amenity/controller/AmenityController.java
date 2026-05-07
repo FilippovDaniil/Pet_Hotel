@@ -9,8 +9,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -64,5 +66,21 @@ public class AmenityController {
             @PathVariable Long id) {
         amenityService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload amenity image (ADMIN)")
+    public ResponseEntity<Void> uploadImage(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        amenityService.uploadImage(id, file);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/image")
+    @Operation(summary = "Get amenity image")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long id) {
+        return amenityService.getImage(id);
     }
 }

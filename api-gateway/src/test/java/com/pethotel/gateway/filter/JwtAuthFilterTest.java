@@ -140,6 +140,52 @@ class JwtAuthFilterTest {
         verify(chain).filter(any());
     }
 
+    // ── public GET amenities (no auth needed) ────────────────────────────────────
+
+    @Test
+    void publicGet_amenitiesList_passesThrough() {
+        MockServerWebExchange exchange = exchange("/api/amenities");
+        when(chain.filter(exchange)).thenReturn(Mono.empty());
+
+        filter.filter(exchange, chain).block();
+
+        verify(chain).filter(exchange);
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void publicGet_amenityImage_passesThrough() {
+        MockServerWebExchange exchange = exchange("/api/amenities/5/image");
+        when(chain.filter(exchange)).thenReturn(Mono.empty());
+
+        filter.filter(exchange, chain).block();
+
+        verify(chain).filter(exchange);
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void postToAmenities_withoutToken_returns401() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/amenities").build());
+
+        filter.filter(exchange, chain).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(any());
+    }
+
+    @Test
+    void putToAmenities_withoutToken_returns401() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.put("/api/amenities/1").build());
+
+        filter.filter(exchange, chain).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(any());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────
 
     private MockServerWebExchange exchange(String path) {

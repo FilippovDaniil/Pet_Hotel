@@ -24,4 +24,8 @@ public class AmenityRequest {
 
     @Min(value = 1, message = "Max duration must be at least 1 minute")
     private int maxDurationMinutes;
+
+    private String description;
+
+    private boolean available = true;
 }

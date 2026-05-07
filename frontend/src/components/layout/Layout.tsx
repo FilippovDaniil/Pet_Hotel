@@ -8,6 +8,7 @@ const navLinks = {
     { to: '/services', label: 'Услуги' },
     { to: '/bookings/my', label: 'Мои брони' },
     { to: '/menu', label: 'Меню' },
+    { to: '/orders/my', label: 'Заказы' },
     { to: '/invoices', label: 'Счета' },
   ],
   RECEPTION: [

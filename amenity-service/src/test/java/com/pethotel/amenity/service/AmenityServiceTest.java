@@ -10,7 +10,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -24,6 +28,7 @@ import static org.mockito.Mockito.*;
 class AmenityServiceTest {
 
     @Mock AmenityRepository amenityRepository;
+    @Mock MultipartFile multipartFile;
     @InjectMocks AmenityService amenityService;
 
     // ── getAll / getById / getByType ─────────────────────────────────────────────
@@ -129,6 +134,136 @@ class AmenityServiceTest {
         assertThatThrownBy(() -> amenityService.delete(99L))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessageContaining("99");
+    }
+
+    // ── available / description ──────────────────────────────────────────────────
+
+    @Test
+    void create_setsAvailableAndDescription() {
+        when(amenityRepository.save(any())).thenAnswer(inv -> {
+            Amenity a = inv.getArgument(0);
+            a.setId(1L);
+            return a;
+        });
+
+        AmenityRequest req = amenityRequest("Sauna", ServiceType.SAUNA, new BigDecimal("2000"), 120);
+        req.setDescription("Finnish sauna");
+        req.setAvailable(false);
+
+        AmenityDto result = amenityService.create(req);
+
+        assertThat(result.getDescription()).isEqualTo("Finnish sauna");
+        assertThat(result.isAvailable()).isFalse();
+    }
+
+    @Test
+    void update_updatesAvailabilityAndDescription() {
+        when(amenityRepository.findById(1L))
+                .thenReturn(Optional.of(amenity(1L, "Sauna", ServiceType.SAUNA)));
+        when(amenityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AmenityRequest req = amenityRequest("Sauna", ServiceType.SAUNA, new BigDecimal("2000"), 120);
+        req.setDescription("Updated desc");
+        req.setAvailable(false);
+
+        AmenityDto result = amenityService.update(1L, req);
+
+        assertThat(result.getDescription()).isEqualTo("Updated desc");
+        assertThat(result.isAvailable()).isFalse();
+    }
+
+    @Test
+    void getAll_mapsHasImageCorrectly() {
+        Amenity withImage = amenity(1L, "Pool", ServiceType.POOL);
+        withImage.setImageData(new byte[]{1, 2, 3});
+        Amenity noImage = amenity(2L, "Sauna", ServiceType.SAUNA);
+
+        when(amenityRepository.findAll()).thenReturn(List.of(withImage, noImage));
+
+        List<AmenityDto> result = amenityService.getAll();
+
+        assertThat(result.get(0).isHasImage()).isTrue();
+        assertThat(result.get(1).isHasImage()).isFalse();
+    }
+
+    // ── image upload ─────────────────────────────────────────────────────────────
+
+    @Test
+    void uploadImage_validFile_savesImageData() throws IOException {
+        byte[] imageBytes = new byte[]{1, 2, 3, 4};
+        when(multipartFile.getSize()).thenReturn((long) imageBytes.length);
+        when(multipartFile.getBytes()).thenReturn(imageBytes);
+        when(multipartFile.getContentType()).thenReturn("image/jpeg");
+        when(amenityRepository.findById(1L))
+                .thenReturn(Optional.of(amenity(1L, "Sauna", ServiceType.SAUNA)));
+        when(amenityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        amenityService.uploadImage(1L, multipartFile);
+
+        verify(amenityRepository).save(argThat(a ->
+                a.getImageData() != null && a.getImageData().length == 4 &&
+                "image/jpeg".equals(a.getImageMimeType())));
+    }
+
+    @Test
+    void uploadImage_oversizedFile_throwsIllegalArgument() {
+        when(multipartFile.getSize()).thenReturn(3L * 1024 * 1024); // 3 MB
+
+        assertThatThrownBy(() -> amenityService.uploadImage(1L, multipartFile))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("2MB");
+    }
+
+    @Test
+    void uploadImage_ioError_throwsRuntimeException() throws IOException {
+        when(multipartFile.getSize()).thenReturn(100L);
+        when(multipartFile.getBytes()).thenThrow(new IOException("disk error"));
+        when(amenityRepository.findById(1L))
+                .thenReturn(Optional.of(amenity(1L, "Sauna", ServiceType.SAUNA)));
+
+        assertThatThrownBy(() -> amenityService.uploadImage(1L, multipartFile))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to read image data");
+    }
+
+    // ── image retrieval ──────────────────────────────────────────────────────────
+
+    @Test
+    void getImage_withData_returnsOkResponse() {
+        Amenity a = amenity(1L, "Sauna", ServiceType.SAUNA);
+        a.setImageData(new byte[]{1, 2, 3});
+        a.setImageMimeType("image/png");
+        when(amenityRepository.findById(1L)).thenReturn(Optional.of(a));
+
+        ResponseEntity<byte[]> response = amenityService.getImage(1L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(new byte[]{1, 2, 3});
+        assertThat(response.getHeaders().getContentType())
+                .hasToString("image/png");
+    }
+
+    @Test
+    void getImage_noData_returns404() {
+        when(amenityRepository.findById(1L))
+                .thenReturn(Optional.of(amenity(1L, "Sauna", ServiceType.SAUNA)));
+
+        ResponseEntity<byte[]> response = amenityService.getImage(1L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void getImage_fallbackMimeType_usesJpeg() {
+        Amenity a = amenity(1L, "Sauna", ServiceType.SAUNA);
+        a.setImageData(new byte[]{1});
+        a.setImageMimeType(null);
+        when(amenityRepository.findById(1L)).thenReturn(Optional.of(a));
+
+        ResponseEntity<byte[]> response = amenityService.getImage(1L);
+
+        assertThat(response.getHeaders().getContentType())
+                .hasToString("image/jpeg");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────

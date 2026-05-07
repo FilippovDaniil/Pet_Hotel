@@ -19,4 +19,7 @@ export const diningApi = {
 
   getOrdersByBooking: (bookingId: number) =>
     client.get<Order[]>(`/orders/booking/${bookingId}`).then(r => r.data),
+
+  getMyOrders: () =>
+    client.get<Order[]>('/orders/my').then(r => r.data),
 }

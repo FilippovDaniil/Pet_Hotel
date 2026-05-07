@@ -247,11 +247,11 @@ Pet_Hotel/
 │   └── src/main/
 │       ├── java/com/pethotel/amenity/
 │       │   ├── AmenityServiceApplication.java
-│       │   ├── entity/Amenity.java           # id, name, type (ServiceType), defaultPrice, maxDurationMinutes
+│       │   ├── entity/Amenity.java           # id, name, type, defaultPrice, maxDurationMinutes, description, available, imageData (bytea), imageMimeType
 │       │   ├── repository/AmenityRepository.java
-│       │   ├── dto/                          # AmenityDto, AmenityRequest
-│       │   ├── service/AmenityService.java
-│       │   ├── controller/AmenityController.java  # GET /api/amenities, CRUD (ADMIN)
+│       │   ├── dto/                          # AmenityDto (+ description, available, hasImage), AmenityRequest
+│       │   ├── service/AmenityService.java   # CRUD, uploadImage (макс. 2МБ), getImage
+│       │   ├── controller/AmenityController.java  # GET /api/amenities, CRUD (ADMIN), POST/GET /{id}/image
 │       │   └── config/
 │       │       ├── KafkaConsumerConfig.java  # Слушает service.booked
 │       │       └── SecurityConfig.java
@@ -267,18 +267,19 @@ Pet_Hotel/
 │       │   ├── DiningServiceApplication.java
 │       │   ├── entity/
 │       │   │   ├── MenuItem.java             # id, name, price, category, available
-│       │   │   └── Order.java                # id, bookingId, customerId, menuItemId, qty, totalAmount, paidByLimit, extraCharge
+│       │   │   ├── Order.java                # id, bookingId, customerId, menuItemId, menuItemName, qty, totalAmount, paidByLimit, extraCharge, deliveryType
+│       │   │   └── DeliveryType.java         # ROOM_DELIVERY, DINING_ROOM
 │       │   ├── repository/
 │       │   │   ├── MenuItemRepository.java
-│       │   │   └── OrderRepository.java      # findByBookingId, findByCustomerIdAndOrderTimeBetween
-│       │   ├── dto/                          # MenuItemDto, MenuItemRequest, OrderDto, OrderRequest
+│       │   │   └── OrderRepository.java      # findByBookingId, findByCustomerIdOrderByOrderTimeDesc
+│       │   ├── dto/                          # MenuItemDto, MenuItemRequest, OrderDto (+ menuItemName, deliveryType), OrderRequest (+ deliveryType)
 │       │   ├── service/
 │       │   │   ├── DailyLimitService.java    # Redis: ключ dining:limit:{bookingId}:{date}, TTL до полуночи
 │       │   │   ├── MenuService.java          # CRUD + @Cacheable
-│       │   │   └── OrderService.java         # создание заказа, расчёт лимитов, Kafka event
+│       │   │   └── OrderService.java         # создание заказа, расчёт лимитов, Kafka event, getByCustomerId
 │       │   ├── controller/
 │       │   │   ├── MenuController.java       # GET /api/menu, CRUD (ADMIN)
-│       │   │   └── OrderController.java      # POST /api/orders, GET /api/orders/booking/{id}
+│       │   │   └── OrderController.java      # POST /api/orders, GET /api/orders/my, GET /api/orders/booking/{id}
 │       │   └── config/
 │       │       ├── AppConfig.java            # WebClient.Builder
 │       │       ├── CacheConfig.java          # Redis: menu-items TTL 1 час
@@ -354,6 +355,7 @@ Pet_Hotel/
         │   └── layout/
         │       └── Layout.tsx      # Navbar + Sidebar + Outlet (роль-зависимые ссылки)
         └── pages/
+            ├── LandingPage.tsx     # Публичная главная: hero, статистика, услуги из API
             ├── auth/
             │   ├── LoginPage.tsx
             │   └── RegisterPage.tsx
@@ -363,14 +365,16 @@ Pet_Hotel/
             │   ├── RoomsPage.tsx        # Поиск доступных номеров
             │   ├── BookingCreatePage.tsx # Создание брони + выбор услуг
             │   ├── MyBookingsPage.tsx
-            │   ├── MenuPage.tsx         # Меню буфета + заказ
-            │   └── InvoicesPage.tsx
+            │   ├── MenuPage.tsx         # Меню буфета + заказ (с выбором доставки)
+            │   ├── MyOrdersPage.tsx     # История заказов клиента
+            │   ├── ServicesPage.tsx     # Страница услуг с фото и описаниями
+            │   └── InvoicesPage.tsx     # Счета + кнопка оплаты
             ├── reception/
             │   └── AllBookingsPage.tsx  # Все брони с фильтрами и действиями
             └── admin/
                 ├── ManageRoomsPage.tsx
                 ├── ManageMenuPage.tsx
-                └── ManageAmenitiesPage.tsx
+                └── ManageAmenitiesPage.tsx  # Услуги: описание, фото, доступность
 ```
 
 ---
@@ -623,14 +627,18 @@ POST /api/bookings
 
 ### Услуги (Amenities)
 
+`GET /api/amenities/**` — **публичный маршрут**, токен не требуется (для лендинга и просмотра гостями).
+
 | Метод | URL | Роль | Описание |
 |---|---|---|---|
-| `GET` | `/api/amenities` | любая | Все услуги |
-| `GET` | `/api/amenities/{id}` | любая | Услуга по ID |
-| `GET` | `/api/amenities/type/{type}` | любая | Услуга по типу |
+| `GET` | `/api/amenities` | — | Все услуги (публично) |
+| `GET` | `/api/amenities/{id}` | — | Услуга по ID (публично) |
+| `GET` | `/api/amenities/{id}/image` | — | Фото услуги (публично, `Content-Type: image/*`) |
+| `GET` | `/api/amenities/type/{type}` | — | Услуги по типу (публично) |
 | `POST` | `/api/amenities` | ADMIN | Создать услугу |
-| `PUT` | `/api/amenities/{id}` | ADMIN | Обновить |
-| `DELETE` | `/api/amenities/{id}` | ADMIN | Удалить |
+| `PUT` | `/api/amenities/{id}` | ADMIN | Обновить услугу (название, тип, цена, описание, доступность) |
+| `DELETE` | `/api/amenities/{id}` | ADMIN | Удалить услугу |
+| `POST` | `/api/amenities/{id}/image` | ADMIN | Загрузить фото (multipart/form-data, поле `file`, макс. 2 МБ) |
 
 ### Буфет
 
@@ -641,6 +649,7 @@ POST /api/bookings
 | `PUT` | `/api/menu/{id}` | ADMIN | Обновить блюдо |
 | `DELETE` | `/api/menu/{id}` | ADMIN | Удалить блюдо |
 | `POST` | `/api/orders` | CUSTOMER | Заказать еду |
+| `GET` | `/api/orders/my` | CUSTOMER | Все мои заказы (сортировка: новые первые) |
 | `GET` | `/api/orders/booking/{bookingId}` | CUSTOMER, RECEPTION | Заказы по брони |
 
 **Пример заказа:**
@@ -649,7 +658,8 @@ POST /api/orders
 {
   "bookingId": 42,
   "menuItemId": 5,
-  "quantity": 2
+  "quantity": 2,
+  "deliveryType": "ROOM_DELIVERY"
 }
 ```
 
@@ -659,7 +669,7 @@ POST /api/orders
 |---|---|---|---|
 | `GET` | `/api/invoices/my` | CUSTOMER | Мои счета |
 | `GET` | `/api/invoices/booking/{bookingId}` | любая | Счёт по брони |
-| `POST` | `/api/invoices/{bookingId}/pay` | RECEPTION | Отметить как оплаченный |
+| `POST` | `/api/invoices/{bookingId}/pay` | CUSTOMER, RECEPTION | Отметить как оплаченный |
 
 ---
 
@@ -758,6 +768,7 @@ billing-service.pay() — ресепшн нажимает "Оплатить"
 - `GET /swagger-ui/**`
 - `GET /v3/api-docs/**`
 - `GET /actuator/**`
+- `GET /api/amenities/**` — только метод GET (POST/PUT/DELETE по-прежнему требуют ADMIN-токен)
 
 ### Важно для production
 
@@ -870,6 +881,7 @@ GET /actuator/metrics  → метрики
 
 | Страница | URL | Роль |
 |---|---|---|
+| Главная (лендинг) | `/` | — (публичная) |
 | Вход | `/login` | — |
 | Регистрация | `/register` | — |
 | Dashboard | `/dashboard` | все |
@@ -878,6 +890,7 @@ GET /actuator/metrics  → метрики
 | Создание брони | `/bookings/new?roomId=...` | CUSTOMER |
 | Мои брони | `/bookings/my` | CUSTOMER |
 | Меню буфета | `/menu` | CUSTOMER |
+| Мои заказы | `/orders/my` | CUSTOMER |
 | Мои счета | `/invoices` | CUSTOMER |
 | Детали брони | `/bookings/:id` | все |
 | Все брони | `/bookings/all` | RECEPTION, ADMIN |
@@ -943,8 +956,9 @@ Authorization: Bearer <admin-token>
 | Просмотр всех броней | — | ✅ | ✅ |
 | Подтверждение/Заселение/Выселение | — | ✅ | ✅ |
 | Заказ еды | ✅ | — | — |
+| Просмотр своих заказов | ✅ | — | — |
 | Просмотр своих счетов | ✅ | — | — |
-| Оплата счёта | — | ✅ | ✅ |
+| Оплата счёта | ✅ | ✅ | ✅ |
 | CRUD номеров | — | — | ✅ |
 | CRUD меню | — | — | ✅ |
 | CRUD услуг | — | — | ✅ |

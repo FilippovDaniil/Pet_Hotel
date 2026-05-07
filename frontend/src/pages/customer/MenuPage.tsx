@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { diningApi } from '../../api/dining.api'
 import { bookingApi } from '../../api/booking.api'
-import type { MenuItem, Booking } from '../../types'
+import type { MenuItem, Booking, DeliveryType } from '../../types'
+import { DELIVERY_TYPE_LABELS, DELIVERY_TYPE_ICONS } from '../../types'
 
 function Spinner() {
   return (
@@ -23,6 +24,7 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
     bookings.length > 0 ? bookings[0].id : ''
   )
   const [quantity, setQuantity] = useState(1)
+  const [deliveryType, setDeliveryType] = useState<DeliveryType>('DINING_ROOM')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,6 +41,7 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
         bookingId: Number(bookingId),
         menuItemId: item.id,
         quantity,
+        deliveryType,
       })
       onSuccess()
     } catch (err: any) {
@@ -49,6 +52,8 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
       setLoading(false)
     }
   }
+
+  const selectedBooking = bookings.find((b) => b.id === Number(bookingId))
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
@@ -89,6 +94,34 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
                   </option>
                 ))}
               </select>
+              {selectedBooking && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Счёт за заказ будет добавлен к броне #{selectedBooking.id}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="label">Способ получения</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(['DINING_ROOM', 'ROOM_DELIVERY'] as DeliveryType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setDeliveryType(type)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      deliveryType === type
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <span className="text-2xl">{DELIVERY_TYPE_ICONS[type]}</span>
+                    <span className="text-xs font-medium text-center">
+                      {DELIVERY_TYPE_LABELS[type]}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -107,11 +140,19 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
               />
             </div>
 
-            <div className="pt-1 text-sm text-gray-600">
-              Итого:{' '}
-              <strong className="text-gray-900">
-                {(item.price * quantity).toLocaleString('ru-RU')} ₽
-              </strong>
+            <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Итого:</span>
+                <strong className="text-gray-900">
+                  {(item.price * quantity).toLocaleString('ru-RU')} ₽
+                </strong>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Будет добавлено к счёту брони</span>
+                <span className="text-gray-500">
+                  {deliveryType === 'ROOM_DELIVERY' ? `Номер #${selectedBooking?.roomId ?? '—'}` : 'Столовая'}
+                </span>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -143,6 +184,14 @@ function OrderModal({ item, bookings, onClose, onSuccess }: OrderModalProps) {
   )
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  'Завтрак': 'Завтраки',
+  'Обед': 'Обед',
+  'Ужин': 'Ужин',
+  'Напитки': 'Напитки',
+  'Десерты': 'Десерты',
+}
+
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [activeBookings, setActiveBookings] = useState<Booking[]>([])
@@ -172,22 +221,37 @@ export default function MenuPage() {
       })
   }, [])
 
-  // Group by category
   const categories = Array.from(
     new Set(menuItems.filter((m) => m.available).map((m) => m.category))
   )
 
   const handleOrderSuccess = () => {
     setOrderItem(null)
-    setSuccessMsg('Заказ успешно оформлен!')
-    setTimeout(() => setSuccessMsg(''), 4000)
+    setSuccessMsg('Заказ успешно оформлен! Он добавлен к счёту вашей брони.')
+    setTimeout(() => setSuccessMsg(''), 5000)
   }
 
   if (loading) return <Spinner />
 
   return (
     <div>
-      <h1 className="page-title">Меню буфета</h1>
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div>
+          <h1 className="page-title mb-1">Меню буфета</h1>
+          <p className="text-sm text-gray-500">
+            Заказы списываются со счёта брони. Выберите доставку в номер или за столик в столовой.
+          </p>
+        </div>
+        <a href="/orders/my" className="btn-secondary text-sm flex-shrink-0">
+          Мои заказы →
+        </a>
+      </div>
+
+      {activeBookings.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 text-sm">
+          У вас нет активных броней. Для заказа блюд необходима активная бронь.
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
@@ -210,7 +274,7 @@ export default function MenuPage() {
 
       {categories.map((category) => (
         <div key={category} className="mb-8">
-          <h2 className="section-title capitalize">{category}</h2>
+          <h2 className="section-title">{CATEGORY_LABELS[category] ?? category}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {menuItems
               .filter((m) => m.category === category && m.available)
@@ -232,6 +296,7 @@ export default function MenuPage() {
                     <button
                       className="btn-primary text-sm"
                       onClick={() => setOrderItem(item)}
+                      disabled={activeBookings.length === 0}
                     >
                       Заказать
                     </button>

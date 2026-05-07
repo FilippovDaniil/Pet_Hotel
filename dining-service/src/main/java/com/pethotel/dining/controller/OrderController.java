@@ -34,4 +34,10 @@ public class OrderController {
     public ResponseEntity<List<OrderDto>> getByBookingId(@PathVariable Long bookingId) {
         return ResponseEntity.ok(orderService.getByBookingId(bookingId));
     }
+
+    @GetMapping("/my")
+    @Operation(summary = "Get my orders (CUSTOMER)")
+    public ResponseEntity<List<OrderDto>> getMyOrders(@RequestHeader("X-User-Id") Long userId) {
+        return ResponseEntity.ok(orderService.getByCustomerId(userId));
+    }
 }

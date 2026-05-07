@@ -28,6 +28,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/actuator"
     );
 
+    private static final List<String> PUBLIC_GET_PATHS = List.of(
+            "/api/amenities"
+    );
+
     private final JwtUtil jwtUtil;
 
     @Override
@@ -38,8 +42,13 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod().name();
 
         if (isPublicPath(path)) {
+            return chain.filter(exchange);
+        }
+
+        if ("GET".equals(method) && PUBLIC_GET_PATHS.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
 
@@ -73,4 +82,5 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
+
 }

@@ -1,5 +1,6 @@
 package com.pethotel.dining.dto;
 
+import com.pethotel.dining.entity.DeliveryType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -16,4 +17,7 @@ public class OrderRequest {
     @NotNull(message = "Quantity must not be null")
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
+
+    @NotNull(message = "Delivery type must not be null")
+    private DeliveryType deliveryType;
 }

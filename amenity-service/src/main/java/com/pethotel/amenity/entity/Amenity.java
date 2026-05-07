@@ -31,4 +31,17 @@ public class Amenity {
 
     @Column(nullable = false)
     private int maxDurationMinutes;
+
+    @Column(length = 2000)
+    private String description;
+
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean available = true;
+
+    @Column(columnDefinition = "bytea")
+    private byte[] imageData;
+
+    @Column(length = 100)
+    private String imageMimeType;
 }

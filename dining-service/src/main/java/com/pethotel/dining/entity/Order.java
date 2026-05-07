@@ -28,6 +28,9 @@ public class Order {
     @Column(nullable = false)
     private Long menuItemId;
 
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'Неизвестно'")
+    private String menuItemName;
+
     @Column(nullable = false)
     private Integer quantity;
 
@@ -41,6 +44,10 @@ public class Order {
 
     @Column(precision = 10, scale = 2)
     private BigDecimal extraCharge;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(50) default 'ROOM_DELIVERY'")
+    private DeliveryType deliveryType;
 
     @PrePersist
     public void prePersist() {

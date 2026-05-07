@@ -4,11 +4,13 @@ import Layout from './components/layout/Layout'
 
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import RoomsPage from './pages/customer/RoomsPage'
 import BookingCreatePage from './pages/customer/BookingCreatePage'
 import MyBookingsPage from './pages/customer/MyBookingsPage'
 import MenuPage from './pages/customer/MenuPage'
+import MyOrdersPage from './pages/customer/MyOrdersPage'
 import InvoicesPage from './pages/customer/InvoicesPage'
 import ServicesPage from './pages/customer/ServicesPage'
 import BookingDetailPage from './pages/BookingDetailPage'
@@ -45,16 +47,11 @@ function RequireRole({
   return <>{children}</>
 }
 
-function RootRedirect() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
-}
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -113,6 +110,14 @@ export default function App() {
             element={
               <RequireRole roles={['CUSTOMER']}>
                 <MenuPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/orders/my"
+            element={
+              <RequireRole roles={['CUSTOMER']}>
+                <MyOrdersPage />
               </RequireRole>
             }
           />
