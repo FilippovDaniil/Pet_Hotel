@@ -10,6 +10,7 @@ const navLinks = {
     { to: '/menu', label: 'Меню' },
     { to: '/orders/my', label: 'Заказы' },
     { to: '/invoices', label: 'Счета' },
+    { to: '/support', label: 'Поддержка' },
   ],
   RECEPTION: [
     { to: '/dashboard', label: 'Главная' },
@@ -22,6 +23,7 @@ const navLinks = {
     { to: '/bookings/all', label: 'Все брони' },
     { to: '/menu/manage', label: 'Меню' },
     { to: '/amenities/manage', label: 'Услуги' },
+    { to: '/support/admin', label: 'Поддержка' },
   ],
 }
 

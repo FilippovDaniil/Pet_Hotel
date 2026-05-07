@@ -228,6 +228,24 @@ services:
         condition: service_started
     restart: on-failure
 
+  support-service:
+    build:
+      context: .
+      dockerfile: support-service/Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hotel?currentSchema=support
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: on-failure
+
   api-gateway:
     build:
       context: .
@@ -241,6 +259,7 @@ services:
       AMENITY_SERVICE_URL: http://amenity-service:8084
       DINING_SERVICE_URL: http://dining-service:8085
       BILLING_SERVICE_URL: http://billing-service:8086
+      SUPPORT_SERVICE_URL: http://support-service:8087
       JWT_SECRET: very-secret-key-min-32-chars-long-here-ok
     depends_on:
       postgres:

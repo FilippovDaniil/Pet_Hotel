@@ -37,6 +37,11 @@ spring:
           predicates:
             - Path=/api/invoices/**
 
+        - id: support-service
+          uri: ${SUPPORT_SERVICE_URL:http://support-service:8087}
+          predicates:
+            - Path=/api/support/**
+
 jwt:
   secret: ${JWT_SECRET:very-secret-key-min-32-chars-long-here}
   expiration-ms: 86400000

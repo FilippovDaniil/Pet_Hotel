@@ -70,10 +70,12 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
         Long userId = jwtUtil.getUserId(token);
         String role = jwtUtil.getRole(token);
+        String email = jwtUtil.getEmail(token);
 
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .header("X-User-Id", String.valueOf(userId))
                 .header("X-User-Role", role)
+                .header("X-User-Email", email != null ? email : "")
                 .build();
 
         return chain.filter(exchange.mutate().request(mutatedRequest).build());

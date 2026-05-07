@@ -18,6 +18,8 @@ import AllBookingsPage from './pages/reception/AllBookingsPage'
 import ManageRoomsPage from './pages/admin/ManageRoomsPage'
 import ManageMenuPage from './pages/admin/ManageMenuPage'
 import ManageAmenitiesPage from './pages/admin/ManageAmenitiesPage'
+import SupportPage from './pages/customer/SupportPage'
+import AdminSupportPage from './pages/admin/AdminSupportPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -150,6 +152,22 @@ export default function App() {
             element={
               <RequireRole roles={['ADMIN']}>
                 <ManageAmenitiesPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/support"
+            element={
+              <RequireRole roles={['CUSTOMER']}>
+                <SupportPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/support/admin"
+            element={
+              <RequireRole roles={['ADMIN']}>
+                <AdminSupportPage />
               </RequireRole>
             }
           />
