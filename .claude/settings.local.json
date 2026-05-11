@@ -40,7 +40,9 @@
       "Bash(Get-ChildItem *)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(./gradlew test *)",
-      "Bash(Test-Path *)"
+      "Bash(Test-Path *)",
+      "Bash(./gradlew integrationTest --no-daemon)",
+      "Bash(Select-Object -First 20 FullName)"
     ]
   }
 }

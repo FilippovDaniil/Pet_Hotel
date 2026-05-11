@@ -1,0 +1,1945 @@
+{
+  "info": {
+    "_postman_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "name": "Pet Hotel — Full API",
+    "description": "Полная коллекция для тестирования всех эндпоинтов Pet Hotel.\n\n**Начало работы:**\n1. Запустите `docker-compose up --build`\n2. Выполните запросы из папки «🔐 Аутентификация» — токены сохраняются автоматически\n3. `booking_id`, `room_id`, `amenity_id`, `menu_item_id` сохраняются после create-запросов\n\n**Тестовые учётные данные:**\n- `customer@hotel.com` / `customer123`\n- `reception@hotel.com` / `reception123`\n- `admin@hotel.com` / `admin123`\n\n**Переменные коллекции:**\n- `base_url` — адрес API Gateway (по умолчанию http://localhost:8080)\n- `customer_token`, `reception_token`, `admin_token` — JWT-токены по ролям\n- `customer_id`, `booking_id`, `room_id`, `amenity_id`, `menu_item_id` — ID ресурсов",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",        "value": "http://localhost:8080", "type": "string" },
+    { "key": "customer_token",  "value": "", "type": "string" },
+    { "key": "reception_token", "value": "", "type": "string" },
+    { "key": "admin_token",     "value": "", "type": "string" },
+    { "key": "customer_id",     "value": "1", "type": "string" },
+    { "key": "booking_id",      "value": "1", "type": "string" },
+    { "key": "room_id",         "value": "1", "type": "string" },
+    { "key": "amenity_id",      "value": "1", "type": "string" },
+    { "key": "menu_item_id",    "value": "1", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Аутентификация",
+      "description": "Регистрация и вход. Логин сохраняет JWT-токены в переменные коллекции автоматически.",
+      "item": [
+        {
+          "name": "Регистрация нового клиента",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Токен в ответе', () => {",
+                  "    const d = pm.response.json();",
+                  "    pm.expect(d.token).to.be.a('string');",
+                  "    pm.expect(d.role).to.eql('CUSTOMER');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@hotel.com\",\n  \"password\": \"secret123\",\n  \"firstName\": \"Иван\",\n  \"lastName\": \"Иванов\",\n  \"phone\": \"+7-999-123-4567\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Регистрация. Все поля кроме `phone` обязательны. Пароль минимум 6 символов."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Логин → CUSTOMER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('customer_token', d.token);",
+                  "    pm.collectionVariables.set('customer_id', String(d.userId));",
+                  "    pm.test('Роль CUSTOMER', () => pm.expect(d.role).to.eql('CUSTOMER'));",
+                  "    console.log('customer_token сохранён, userId=' + d.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@hotel.com\",\n  \"password\": \"customer123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Токен сохраняется в `customer_token`. `customer_id` сохраняется для запросов к /support."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Логин → RECEPTION",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('reception_token', d.token);",
+                  "    pm.test('Роль RECEPTION', () => pm.expect(d.role).to.eql('RECEPTION'));",
+                  "    console.log('reception_token сохранён');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"reception@hotel.com\",\n  \"password\": \"reception123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "Логин → ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', d.token);",
+                  "    pm.test('Роль ADMIN', () => pm.expect(d.role).to.eql('ADMIN'));",
+                  "    console.log('admin_token сохранён');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@hotel.com\",\n  \"password\": \"admin123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "❌ Логин с неверным паролем",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@hotel.com\",\n  \"password\": \"WRONG_PASSWORD\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Граничный случай: ожидается 401 Unauthorized."
+          },
+          "response": []
+        },
+
+        {
+          "name": "❌ Регистрация — короткий пароль",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@hotel.com\",\n  \"password\": \"123\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Пароль меньше 6 символов → 400 Bad Request с ошибкой валидации."
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🏨 Номера",
+      "description": "CRUD номеров. GET-запросы публичны. POST/PUT/DELETE требуют роль ADMIN.",
+      "item": [
+        {
+          "name": "Все номера",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив номеров', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms"]
+            },
+            "description": "Список всех номеров. Без авторизации. Возвращает 10 номеров из DataSeeder."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Поиск доступных номеров",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив результатов', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms/search?checkIn=2026-08-01&checkOut=2026-08-05&guests=2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "search"],
+              "query": [
+                { "key": "checkIn",  "value": "2026-08-01" },
+                { "key": "checkOut", "value": "2026-08-05" },
+                { "key": "guests",   "value": "2" }
+              ]
+            },
+            "description": "Свободные номера на период. Результат кэшируется в Redis на 5 минут. Формат дат: YYYY-MM-DD."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Номер по ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Есть roomNumber', () => pm.expect(pm.response.json().roomNumber).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "1"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Создать номер",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('room_id', String(d.id));",
+                  "    console.log('room_id=' + d.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomNumber\": \"201\",\n  \"roomClass\": \"PREMIUM\",\n  \"capacity\": 2,\n  \"pricePerNight\": 8000.00,\n  \"description\": \"Люкс с видом на парк\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms"]
+            },
+            "description": "roomClass: ORDINARY | MIDDLE | PREMIUM. ID нового номера сохраняется в `room_id`."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Обновить номер",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomNumber\": \"201\",\n  \"roomClass\": \"PREMIUM\",\n  \"capacity\": 3,\n  \"pricePerNight\": 9000.00,\n  \"description\": \"Люкс с обновлённым дизайном\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "{{room_id}}"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Удалить номер",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "{{room_id}}"]
+            },
+            "description": "204 No Content при успехе."
+          },
+          "response": []
+        },
+
+        {
+          "name": "❌ Создать номер без токена",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomNumber\": \"999\",\n  \"roomClass\": \"ORDINARY\",\n  \"capacity\": 1,\n  \"pricePerNight\": 1000.00\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms"]
+            },
+            "description": "Без Authorization → 401 от Gateway."
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "📅 Бронирования",
+      "description": "Полный жизненный цикл: PENDING → CONFIRMED → (check-in) → COMPLETED. Отмена возможна из PENDING/CONFIRMED.",
+      "item": [
+        {
+          "name": "[CUSTOMER] Создать бронирование + услуги",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('booking_id', String(d.id));",
+                  "    pm.test('Статус PENDING', () => pm.expect(d.status).to.eql('PENDING'));",
+                  "    console.log('booking_id=' + d.id + ', totalPrice=' + d.totalPrice);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": 1,\n  \"checkIn\": \"2026-08-10\",\n  \"checkOut\": \"2026-08-15\",\n  \"amenities\": [\n    {\n      \"serviceType\": \"SAUNA\",\n      \"startTime\": \"2026-08-11T10:00:00\",\n      \"endTime\": \"2026-08-11T12:00:00\"\n    },\n    {\n      \"serviceType\": \"MASSAGE\",\n      \"startTime\": \"2026-08-12T14:00:00\",\n      \"endTime\": \"2026-08-12T15:00:00\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Создаёт бронирование с услугами. ID сохраняется в `booking_id`. Цена услуг зависит от класса номера (roomId=1 → ORDINARY → SAUNA 2000р, MASSAGE 3000р).\n\nServiceType: SAUNA | BATH | POOL | BILLIARD_RUS | BILLIARD_US | MASSAGE"
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Создать бронирование без услуг",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": 2,\n  \"checkIn\": \"2026-09-01\",\n  \"checkOut\": \"2026-09-03\",\n  \"amenities\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Мои бронирования",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив бронирований', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/my",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "my"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "Бронирование по ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Есть статус', () => pm.expect(pm.response.json().status).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}"]
+            },
+            "description": "Доступно всем ролям. Показывает детали включая список amenities и totalPrice."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION/ADMIN] Все бронирования",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "all"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION] Подтвердить бронирование",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "confirm"]
+            },
+            "description": "PENDING → CONFIRMED. Только из статуса PENDING."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION] Заезд (check-in)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/checkin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "checkin"]
+            },
+            "description": "Фиксирует фактический заезд. Требует статус CONFIRMED."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION] Выезд (check-out)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус COMPLETED', () => pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/checkout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "checkout"]
+            },
+            "description": "CONFIRMED → COMPLETED. Публикует BookingCompletedEvent → billing создаёт финальный счёт."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Отменить бронирование",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "cancel"]
+            },
+            "description": "Клиент может отменить только СВОЁ бронирование. Штраф 30% если заезд в течение 24 ч."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION] Отменить (без штрафа)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "cancel"]
+            },
+            "description": "Ресепшн отменяет бронирование без штрафа (isReception=true). Роль берётся из X-User-Role заголовка, который добавляет Gateway."
+          },
+          "response": []
+        },
+
+        {
+          "name": "❌ Подтвердить несуществующее бронирование",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/999999/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "999999", "confirm"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "❌ Создать бронирование — checkOut раньше checkIn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": 1,\n  \"checkIn\": \"2026-09-10\",\n  \"checkOut\": \"2026-09-05\",\n  \"amenities\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🎯 Услуги (Amenities)",
+      "description": "GET — публично. POST/PUT/DELETE — ADMIN. Изображения — отдельные эндпоинты.",
+      "item": [
+        {
+          "name": "Все услуги",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив услуг', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/amenities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities"]
+            },
+            "description": "Публичный эндпоинт (GET /api/amenities — в белом списке Gateway)."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Услуга по ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/amenities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "1"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "Услуги по типу (SAUNA)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/amenities/type/SAUNA",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "type", "SAUNA"]
+            },
+            "description": "Типы: SAUNA | BATH | POOL | BILLIARD_RUS | BILLIARD_US | MASSAGE"
+          },
+          "response": []
+        },
+
+        {
+          "name": "Изображение услуги (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/amenities/1/image",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "1", "image"]
+            },
+            "description": "Возвращает бинарное изображение. 404 если изображение не загружено."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Создать услугу",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('amenity_id', String(d.id));",
+                  "    console.log('amenity_id=' + d.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Хаммам\",\n  \"type\": \"BATH\",\n  \"defaultPrice\": 2500.00,\n  \"maxDurationMinutes\": 90,\n  \"description\": \"Турецкая баня с паровой комнатой\",\n  \"available\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/amenities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities"]
+            },
+            "description": "type: SAUNA | BATH | POOL | BILLIARD_RUS | BILLIARD_US | MASSAGE\nID сохраняется в `amenity_id`."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Обновить услугу",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Хаммам (обновлён)\",\n  \"type\": \"BATH\",\n  \"defaultPrice\": 2800.00,\n  \"maxDurationMinutes\": 120,\n  \"description\": \"Турецкая баня — расширенная программа\",\n  \"available\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/amenities/{{amenity_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "{{amenity_id}}"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Загрузить изображение услуги",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Выберите файл изображения (JPG/PNG, макс 2 МБ)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/amenities/{{amenity_id}}/image",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "{{amenity_id}}", "image"]
+            },
+            "description": "multipart/form-data, поле называется «file». Максимум 2 МБ."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Удалить услугу",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/amenities/{{amenity_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "amenities", "{{amenity_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🍽️ Ресторан (Dining)",
+      "description": "Меню (GET публично, управление — ADMIN). Заказы — только CUSTOMER с активным бронированием.",
+      "item": [
+        {
+          "name": "Меню",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив позиций', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "menu"]
+            },
+            "description": "26 позиций из DataSeeder (завтраки, обед, ужин, напитки, десерты). Кэш Redis 1 час."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Заказ — доставка в номер",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test('extraCharge >= 0', () => pm.expect(d.extraCharge).to.be.at.least(0));",
+                  "    console.log('paidByLimit=' + d.paidByLimit + ', extraCharge=' + d.extraCharge);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{booking_id}},\n  \"menuItemId\": 1,\n  \"quantity\": 2,\n  \"deliveryType\": \"ROOM_DELIVERY\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "deliveryType: ROOM_DELIVERY | DINING_ROOM\n\nЕсли бронирование ORDINARY — весь заказ идёт в extraCharge (лимит 0 руб).\nMIDDLE — до 1000 руб/день бесплатно. PREMIUM — до 3000 руб/день."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Заказ — в ресторане",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{booking_id}},\n  \"menuItemId\": 3,\n  \"quantity\": 1,\n  \"deliveryType\": \"DINING_ROOM\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "Заказы по бронированию",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив заказов', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/booking/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "booking", "{{booking_id}}"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Добавить позицию меню",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('menu_item_id', String(d.id));",
+                  "    console.log('menu_item_id=' + d.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Фирменный бургер\",\n  \"price\": 750.00,\n  \"category\": \"Горячее\",\n  \"available\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "menu"]
+            },
+            "description": "ID сохраняется в `menu_item_id`."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Обновить позицию меню",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Фирменный бургер Делюкс\",\n  \"price\": 890.00,\n  \"category\": \"Горячее\",\n  \"available\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu/{{menu_item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "menu", "{{menu_item_id}}"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Удалить позицию меню",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu/{{menu_item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "menu", "{{menu_item_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "💰 Счета (Billing)",
+      "description": "Счёт формируется автоматически через Kafka после создания бронирования (черновик) и после выезда (финал). Оплата — через ресепшн.",
+      "item": [
+        {
+          "name": "[CUSTOMER] Мои счета",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив счетов', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/my",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "my"]
+            },
+            "description": "Возвращает счета текущего клиента (X-User-Id из JWT)."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Счёт по бронированию",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Есть totalAmount', () => pm.expect(pm.response.json().totalAmount).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/booking/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "booking", "{{booking_id}}"]
+            },
+            "description": "Доступно всем ролям. Показывает roomAmount + amenitiesAmount + diningAmount = totalAmount."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[RECEPTION] Оплатить счёт",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус PAID', () => pm.expect(pm.response.json().status).to.eql('PAID'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/{{booking_id}}/pay",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "{{booking_id}}", "pay"]
+            },
+            "description": "UNPAID → PAID. Без тела запроса — только X-User-Id из токена. Публикует payment.processed в Kafka."
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "💬 Поддержка (Support)",
+      "description": "Чат клиент ↔ admin. Фронтенд делает polling каждые 15 с.",
+      "item": [
+        {
+          "name": "[CUSTOMER] Все мои сообщения",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив сообщений', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "messages"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Отправить сообщение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('senderRole CUSTOMER', () => pm.expect(pm.response.json().senderRole).to.eql('CUSTOMER'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Здравствуйте! У меня вопрос по бронированию #{{booking_id}}. Можно добавить детскую кроватку?\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/support/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "messages"]
+            },
+            "description": "content: max 2000 символов. Gateway добавляет X-User-Email из JWT."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Количество непрочитанных",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Есть count', () => pm.expect(pm.response.json().count).to.not.be.undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/messages/unread-count",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "messages", "unread-count"]
+            },
+            "description": "Возвращает {\"count\": N} — непрочитанные ответы от admin."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[CUSTOMER] Отметить ответы прочитанными",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/messages/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "messages", "read"]
+            },
+            "description": "Устанавливает readByCustomer=true для всех сообщений от admin. 200 с пустым телом."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Все диалоги",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив диалогов', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/admin/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "admin", "conversations"]
+            },
+            "description": "Список всех диалогов с summary: customerId, email, последнее сообщение, кол-во непрочитанных."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Диалог с конкретным клиентом",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Массив сообщений', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/admin/conversations/{{customer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "admin", "conversations", "{{customer_id}}"]
+            },
+            "description": "`customer_id` сохраняется автоматически после «Логин → CUSTOMER»."
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Ответить клиенту",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('senderRole ADMIN', () => pm.expect(pm.response.json().senderRole).to.eql('ADMIN'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Добрый день! Детскую кроватку можем предоставить, уже отмечено для вашего номера.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/support/admin/conversations/{{customer_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "admin", "conversations", "{{customer_id}}", "messages"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "[ADMIN] Отметить сообщения клиента прочитанными",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/support/admin/conversations/{{customer_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "admin", "conversations", "{{customer_id}}", "read"]
+            },
+            "description": "Устанавливает readByAdmin=true для всех сообщений от клиента в диалоге."
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🔄 Полный сценарий (PENDING → PAID)",
+      "description": "Последовательность запросов для тестирования полного жизненного цикла бронирования.\n\n**Порядок выполнения:**\n1. Логин CUSTOMER\n2. Поиск номеров\n3. Создать бронирование\n4. Логин RECEPTION\n5. Подтвердить → CONFIRMED\n6. Заезд (check-in)\n7. [Опционально] Логин CUSTOMER — заказать еду\n8. Логин RECEPTION\n9. Выезд (check-out) → COMPLETED\n10. Оплатить счёт → PAID",
+      "item": [
+        {
+          "name": "1. Логин CUSTOMER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.collectionVariables.set('customer_token', d.token);",
+                  "    pm.collectionVariables.set('customer_id', String(d.userId));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@hotel.com\",\n  \"password\": \"customer123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "2. Поиск свободных номеров",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms/search?checkIn=2026-10-01&checkOut=2026-10-05&guests=2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "search"],
+              "query": [
+                { "key": "checkIn",  "value": "2026-10-01" },
+                { "key": "checkOut", "value": "2026-10-05" },
+                { "key": "guests",   "value": "2" }
+              ]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "3. Создать бронирование",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('booking_id', String(pm.response.json().id));",
+                  "    console.log('Сценарий: booking_id=' + pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": 5,\n  \"checkIn\": \"2026-10-01\",\n  \"checkOut\": \"2026-10-05\",\n  \"amenities\": [\n    {\n      \"serviceType\": \"POOL\",\n      \"startTime\": \"2026-10-02T09:00:00\",\n      \"endTime\": \"2026-10-02T10:00:00\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "4. Логин RECEPTION",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('reception_token', pm.response.json().token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"reception@hotel.com\",\n  \"password\": \"reception123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "5. Подтвердить → CONFIRMED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "confirm"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "6. Заезд (check-in)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/checkin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "checkin"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "7. Заказ еды (CUSTOMER)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customer_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{booking_id}},\n  \"menuItemId\": 2,\n  \"quantity\": 2,\n  \"deliveryType\": \"ROOM_DELIVERY\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "8. Выезд (check-out) → COMPLETED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус COMPLETED', () => pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/checkout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "checkout"]
+            },
+            "description": "После checkout Kafka → billing создаёт финальный счёт (подождите ~1-2 с перед шагом 9)."
+          },
+          "response": []
+        },
+
+        {
+          "name": "9. Проверить финальный счёт",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "console.log('Итого: roomAmount=' + d.roomAmount + ', amenitiesAmount=' + d.amenitiesAmount + ', diningAmount=' + d.diningAmount + ', total=' + d.totalAmount);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/booking/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "booking", "{{booking_id}}"]
+            }
+          },
+          "response": []
+        },
+
+        {
+          "name": "10. Оплатить → PAID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус PAID', () => pm.expect(pm.response.json().status).to.eql('PAID'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{reception_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/{{booking_id}}/pay",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "{{booking_id}}", "pay"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+
+  ]
+}

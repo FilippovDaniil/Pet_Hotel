@@ -17,6 +17,7 @@
             <option value="$PROJECT_DIR$/customer-service" />
             <option value="$PROJECT_DIR$/dining-service" />
             <option value="$PROJECT_DIR$/room-service" />
+            <option value="$PROJECT_DIR$/support-service" />
           </set>
         </option>
       </GradleProjectSettings>
