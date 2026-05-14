@@ -1,48 +1,70 @@
 plugins {
     id 'java'
+    // apply false: объявляем плагины в корне, но НЕ применяем здесь.
+    // Каждый подмодуль применяет их сам через alias(libs.plugins.*) в своём build.gradle.
+    // Это позволяет иметь разные версии плагинов в подмодулях (если нужно).
     id 'org.springframework.boot' version '3.3.5' apply false
     id 'io.spring.dependency-management' version '1.1.6' apply false
 }
 
+// allprojects применяется ко всем: корневому проекту + всем подмодулям.
 allprojects {
-    group = 'com.pethotel'
-    version = '1.0.0'
+    group = 'com.pethotel'   // groupId для артефактов (Maven-координаты)
+    version = '1.0.0'         // версия всех модулей синхронизирована
 
     repositories {
+        // mavenCentral() — основной репозиторий для всех зависимостей.
+        // JVM-артефакты: Spring, Lombok, Testcontainers, etc.
         mavenCentral()
     }
 }
 
+// subprojects применяется только к подмодулям (не к корневому проекту).
+// Здесь задаём общие настройки, которые одинаковы для всех 9 модулей.
 subprojects {
     apply plugin: 'java'
 
     java {
+        // toolchain: Gradle скачает JDK 17, если его нет локально.
+        // Гарантирует одну версию JDK для всех разработчиков и CI.
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
         }
     }
 
     configurations {
+        // compileOnly extendsFrom annotationProcessor:
+        //   Lombok классы (@Data, @Builder) нужны только при компиляции.
+        //   Без этого Lombok не был бы доступен из annotationProcessor на этапе javac.
         compileOnly {
             extendsFrom annotationProcessor
         }
     }
 
     dependencies {
+        // junit-platform-launcher: нужен JUnit 5 Platform для запуска тестов через ./gradlew test.
+        // Начиная с Gradle 8, он не включается автоматически — нужно добавить явно.
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 
+    // ./gradlew test — только unit-тесты (*Test.java).
+    // IT-тесты (*IT.java) исключены: они требуют Docker (Testcontainers) и медленные.
     test {
-        useJUnitPlatform()
-        exclude '**/*IT.class'
+        useJUnitPlatform() // используем JUnit 5
+        exclude '**/*IT.class' // НЕ запускаем интеграционные тесты
     }
 
+    // ./gradlew integrationTest — только интеграционные тесты (*IT.java).
+    // Требуют запущенный Docker Desktop (PostgreSQL и Kafka через Testcontainers).
     tasks.register('integrationTest', Test) {
         useJUnitPlatform()
-        include '**/*IT.class'
+        include '**/*IT.class'   // только файлы *IT.java
         testClassesDirs = sourceSets.test.output.classesDirs
         classpath = sourceSets.test.runtimeClasspath
-        shouldRunAfter test
+        shouldRunAfter test       // если запускаем оба — сначала unit, потом IT
+
+        // Windows Docker Desktop: Testcontainers подключается через named pipe (npipe).
+        // На Linux/Mac эти переменные не нужны (используется /var/run/docker.sock).
         environment 'DOCKER_HOST', 'npipe:////./pipe/docker_engine_linux'
         environment 'DOCKER_API_VERSION', '1.41'
         systemProperty 'DOCKER_API_VERSION', '1.41'

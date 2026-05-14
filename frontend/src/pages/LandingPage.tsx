@@ -1,3 +1,5 @@
+// Главная публичная страница отеля — маркетинговый лендинг.
+// Доступна без авторизации; показывает разные CTA в зависимости от isAuthenticated.
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth.store'
@@ -6,6 +8,7 @@ import type { Amenity } from '../types'
 import type { ServiceType } from '../types/booking'
 import { SERVICE_TYPE_LABELS } from '../types/booking'
 
+// Иконки-эмодзи для карточек услуг (когда нет загруженного изображения).
 const SERVICE_ICONS: Record<ServiceType, string> = {
   SAUNA:        '🧖',
   BATH:         '🛁',
@@ -15,6 +18,7 @@ const SERVICE_ICONS: Record<ServiceType, string> = {
   MASSAGE:      '💆',
 }
 
+// Заглушки описаний если у услуги не заполнено поле description.
 const FALLBACK_DESCRIPTIONS: Record<ServiceType, string> = {
   SAUNA:        'Финская сауна с парилкой, бассейном для охлаждения и зоной отдыха.',
   BATH:         'Традиционная русская баня на дровах с берёзовыми вениками.',
@@ -24,6 +28,7 @@ const FALLBACK_DESCRIPTIONS: Record<ServiceType, string> = {
   MASSAGE:      'Классический расслабляющий массаж от профессиональных массажистов.',
 }
 
+// Статические карточки преимуществ отеля (секция "Почему выбирают нас").
 const FEATURES = [
   {
     icon: '🏠',
@@ -52,16 +57,19 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const [amenities, setAmenities] = useState<Amenity[]>([])
 
+  // Загружаем услуги при монтировании страницы.
+  // GET /api/amenities публичен → работает без авторизации.
+  // .catch(() => {}) — если backend недоступен, просто не показываем секцию услуг.
   useEffect(() => {
     amenityApi
       .getAll()
-      .then((data) => setAmenities(data.filter((a) => a.available)))
+      .then((data) => setAmenities(data.filter((a) => a.available)))  // только доступные
       .catch(() => {})
-  }, [])
+  }, [])  // [] — выполняется один раз при монтировании
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* ── Header ── */}
+      {/* ── Шапка ── sticky top-0: прилипает к верху при скролле; z-40: поверх контента */}
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -69,6 +77,7 @@ export default function LandingPage() {
             <span className="text-lg font-bold text-primary-700">Pet Hotel</span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Условный рендеринг: авторизован → кнопка личного кабинета; нет → вход/регистрация */}
             {isAuthenticated ? (
               <>
                 <span className="text-sm text-gray-500 hidden sm:block">{email}</span>
@@ -93,7 +102,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ── Hero ── */}
+      {/* ── Hero-секция ── тёмный градиент, главный призыв к действию */}
       <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-blue-800 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-6xl mb-6">🏨</div>
@@ -106,6 +115,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {isAuthenticated ? (
+              // Авторизованный клиент → "Выбрать номер"; RECEPTION/ADMIN → "Перейти в кабинет"
               <button
                 onClick={() => navigate(role === 'CUSTOMER' ? '/rooms' : '/dashboard')}
                 className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-blue-900 bg-white rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
@@ -132,9 +142,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
+      {/* ── Статистика ── цифровые факты об отеле на синем фоне */}
       <section className="bg-primary-700 text-white py-8 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+          {/* Данные seeder: 10 номеров, 3 класса, 6 услуг, 26 блюд */}
           {[
             { value: '10', label: 'Номеров' },
             { value: '3', label: 'Класса номеров' },
@@ -149,7 +160,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ── */}
+      {/* ── Преимущества ── 4 карточки в сетке */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">
@@ -158,6 +169,7 @@ export default function LandingPage() {
           <p className="text-center text-gray-500 mb-10">
             Всё для вашего комфортного отдыха в одном месте
           </p>
+          {/* lg:grid-cols-4: 4 колонки на широком экране, 2 на среднем, 1 на мобильном */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {FEATURES.map((f) => (
               <div
@@ -173,7 +185,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Services ── */}
+      {/* ── Услуги ── динамическая секция из amenity-service (только если есть данные) */}
       {amenities.length > 0 && (
         <section className="py-16 px-4">
           <div className="max-w-5xl mx-auto">
@@ -186,23 +198,26 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {amenities.map((amenity) => {
                 const type = amenity.type as ServiceType
+                // Используем описание из БД, если оно есть; иначе — заглушку.
                 const description = amenity.description || FALLBACK_DESCRIPTIONS[type]
                 return (
                   <div
                     key={amenity.id}
                     className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
                   >
+                    {/* Изображение или цветная заглушка с иконкой */}
                     {amenity.hasImage ? (
                       <div className="h-44 overflow-hidden">
+                        {/* src указывает на /api/amenities/{id}/image — проксируется gateway */}
                         <img
                           src={`/api/amenities/${amenity.id}/image`}
                           alt={amenity.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover"  // object-cover: заполняет контейнер без деформации
                         />
                       </div>
                     ) : (
                       <div className="h-44 bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center text-7xl">
-                        {SERVICE_ICONS[type] ?? '🏨'}
+                        {SERVICE_ICONS[type] ?? '🏨'}  {/* ?? — оператор nullish coalescing */}
                       </div>
                     )}
                     <div className="p-5 flex flex-col gap-2 flex-1">
@@ -217,6 +232,7 @@ export default function LandingPage() {
                         <span className="text-xs text-gray-400">
                           до {amenity.maxDurationMinutes} мин
                         </span>
+                        {/* toLocaleString('ru-RU'): форматирует число по русской локали (пробелы как разделители тысяч) */}
                         <span className="font-bold text-primary-700 text-sm">
                           от {Number(amenity.defaultPrice).toLocaleString('ru-RU')} ₽
                         </span>
@@ -230,7 +246,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* ── CTA ── */}
+      {/* ── CTA (призыв к действию) ── повторный блок внизу страницы */}
       <section className="py-16 px-4 bg-primary-700 text-white">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">

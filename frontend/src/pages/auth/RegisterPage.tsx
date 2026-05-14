@@ -1,3 +1,4 @@
+// Страница регистрации нового пользователя — публичная, без RequireAuth.
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { authApi } from '../../api/auth.api'
@@ -5,19 +6,22 @@ import { useAuthStore } from '../../store/auth.store'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
+  const login = useAuthStore((s) => s.login)  // после регистрации сразу логиним пользователя
 
+  // Все поля формы в одном объекте state — удобнее, чем отдельный useState для каждого поля.
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     password: '',
-    confirmPassword: '',
+    confirmPassword: '',  // только для валидации на клиенте, в API не передаётся
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Универсальный обработчик для всех полей: [e.target.name] — вычисляемое имя ключа.
+  // Требует совпадения name атрибута input с ключом в объекте form.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
@@ -26,6 +30,7 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
+    // Клиентская валидация перед отправкой запроса
     if (form.password.length < 6) {
       setError('Пароль должен содержать не менее 6 символов')
       return
@@ -41,10 +46,11 @@ export default function RegisterPage() {
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
-        phone: form.phone || undefined,
+        phone: form.phone || undefined,  // пустая строка → undefined (API ожидает null или отсутствие поля)
         password: form.password,
+        // confirmPassword в API не передаётся — только для UX валидации
       })
-      login(response)
+      login(response)         // регистрация возвращает JWT → сразу авторизуем
       navigate('/dashboard')
     } catch (err: any) {
       const msg =
@@ -61,7 +67,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="card shadow-lg">
-          {/* Logo */}
+          {/* Логотип */}
           <div className="text-center mb-6">
             <div className="text-6xl mb-3">🏨</div>
             <h1 className="text-3xl font-bold text-gray-900">Pet Hotel</h1>
@@ -75,6 +81,7 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Имя и фамилия в одной строке: grid-cols-2 делит пополам */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label" htmlFor="firstName">
@@ -82,7 +89,7 @@ export default function RegisterPage() {
                 </label>
                 <input
                   id="firstName"
-                  name="firstName"
+                  name="firstName"     // совпадает с ключом в объекте form
                   type="text"
                   className="input"
                   placeholder="Иван"
@@ -133,11 +140,12 @@ export default function RegisterPage() {
               <input
                 id="phone"
                 name="phone"
-                type="tel"
+                type="tel"             // мобильный браузер покажет цифровую клавиатуру
                 className="input"
                 placeholder="+7 (999) 123-45-67"
                 value={form.phone}
                 onChange={handleChange}
+                // нет required — поле необязательное
               />
             </div>
 
@@ -155,7 +163,7 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                autoComplete="new-password"
+                autoComplete="new-password"  // подсказка: это новый пароль (не заполнять из сохранённых)
               />
             </div>
 

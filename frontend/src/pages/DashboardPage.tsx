@@ -1,3 +1,4 @@
+// Дашборд — главная страница после входа. Рендерит разный контент для каждой роли.
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth.store'
@@ -5,14 +6,18 @@ import { bookingApi } from '../api/booking.api'
 import { billingApi } from '../api/billing.api'
 import type { Booking, Invoice } from '../types'
 
+// Переиспользуемый компонент спиннера (анимация загрузки).
 function Spinner() {
   return (
     <div className="flex justify-center py-12">
+      {/* animate-spin: Tailwind анимация вращения; border-t-transparent: делает "дугу" */}
       <div className="animate-spin border-4 border-primary-600 border-t-transparent rounded-full w-8 h-8" />
     </div>
   )
 }
 
+// Карточка статистики: иконка + заголовок + значение.
+// React.ReactNode позволяет value быть строкой, числом или JSX-элементом.
 function StatCard({
   icon,
   title,
@@ -22,10 +27,11 @@ function StatCard({
   icon: string
   title: string
   value: React.ReactNode
-  color: string
+  color: string   // Tailwind CSS класс для цвета фона иконки (например "bg-blue-50")
 }) {
   return (
     <div className="card flex items-center gap-4">
+      {/* flex-shrink-0: иконка не сжимается при узком экране */}
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${color}`}>
         {icon}
       </div>
@@ -37,6 +43,7 @@ function StatCard({
   )
 }
 
+// Карточка быстрого действия: клик — программный переход на указанный маршрут.
 function QuickAction({
   icon,
   label,
@@ -52,8 +59,10 @@ function QuickAction({
   return (
     <button
       onClick={() => navigate(to)}
+      // group: позволяет дочерним элементам реагировать на hover через group-hover:
       className={`card flex flex-col items-center gap-2 p-5 cursor-pointer hover:shadow-md transition-shadow text-center group border-2 border-transparent hover:border-primary-200`}
     >
+      {/* group-hover:scale-110: иконка увеличивается при наведении на всю карточку */}
       <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${color} group-hover:scale-110 transition-transform`}>
         {icon}
       </span>
@@ -62,7 +71,7 @@ function QuickAction({
   )
 }
 
-// ── CUSTOMER dashboard ──────────────────────────────────────────────────────
+// ── Дашборд клиента ──────────────────────────────────────────────────────────
 
 function CustomerDashboard() {
   const { email } = useAuthStore()
@@ -71,6 +80,8 @@ function CustomerDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Promise.all: оба запроса выполняются параллельно.
+    // .catch(() => []) — если один запрос упал, остальные данные всё равно показываем.
     Promise.all([
       bookingApi.getMyBookings().catch(() => [] as Booking[]),
       billingApi.getMyInvoices().catch(() => [] as Invoice[]),
@@ -81,16 +92,20 @@ function CustomerDashboard() {
     })
   }, [])
 
+  // Активные бронирования: PENDING (ожидает) или CONFIRMED (подтверждено).
   const activeBookings = bookings.filter(
     (b) => b.status === 'PENDING' || b.status === 'CONFIRMED'
   )
+  // Ближайший заезд: берём минимальную дату из активных броней (sort() без аргументов = лексикографически, но для ISO-дат это работает).
   const nextCheckIn = activeBookings
     .map((b) => b.checkInDate)
     .sort()[0]
+  // Сумма оплаченных счетов.
   const totalSpent = invoices
     .filter((i) => i.status === 'PAID')
     .reduce((sum, i) => sum + i.totalAmount, 0)
 
+  // Берём имя из email (часть до @) как простой способ персонализации без getMe запроса.
   const firstName = email?.split('@')[0] ?? 'Гость'
 
   if (loading) return <Spinner />
@@ -109,6 +124,7 @@ function CustomerDashboard() {
         <StatCard
           icon="📅"
           title="Ближайший заезд"
+          // toLocaleDateString('ru-RU'): "01.08.2025" вместо "2025-08-01"
           value={nextCheckIn ? new Date(nextCheckIn).toLocaleDateString('ru-RU') : '—'}
           color="bg-green-50"
         />
@@ -131,7 +147,7 @@ function CustomerDashboard() {
   )
 }
 
-// ── RECEPTION dashboard ─────────────────────────────────────────────────────
+// ── Дашборд ресепшиониста ────────────────────────────────────────────────────
 
 function ReceptionDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -147,6 +163,7 @@ function ReceptionDashboard() {
       })
   }, [])
 
+  // Счётчики для статкарточек — отражают текущую загруженность ресепшн.
   const pending = bookings.filter((b) => b.status === 'PENDING').length
   const confirmed = bookings.filter((b) => b.status === 'CONFIRMED').length
 
@@ -179,7 +196,7 @@ function ReceptionDashboard() {
   )
 }
 
-// ── ADMIN dashboard ─────────────────────────────────────────────────────────
+// ── Дашборд администратора ───────────────────────────────────────────────────
 
 function AdminDashboard() {
   return (
@@ -197,8 +214,11 @@ function AdminDashboard() {
   )
 }
 
-// ── Main export ─────────────────────────────────────────────────────────────
+// ── Главный экспорт ──────────────────────────────────────────────────────────
 
+// DashboardPage выбирает нужный под-дашборд по роли из Zustand.
+// Нет RequireRole — все авторизованные попадают на /dashboard,
+// а конкретное содержимое определяется ролью здесь.
 export default function DashboardPage() {
   const role = useAuthStore((s) => s.role)
 
@@ -206,6 +226,7 @@ export default function DashboardPage() {
   if (role === 'RECEPTION') return <ReceptionDashboard />
   if (role === 'ADMIN') return <AdminDashboard />
 
+  // Fallback на случай пока роль ещё не загружена из store.
   return (
     <div className="flex items-center justify-center min-h-[40vh]">
       <p className="text-gray-500">Загрузка...</p>

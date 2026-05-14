@@ -1,3 +1,5 @@
+// Страница счетов клиента (CUSTOMER).
+// Показывает все счета с разбивкой на составляющие и кнопкой оплаты.
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { billingApi } from '../../api/billing.api'
@@ -16,9 +18,10 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [payingId, setPayingId] = useState<number | null>(null)
+  const [payingId, setPayingId] = useState<number | null>(null)  // bookingId, по которому идёт оплата
   const [successMsg, setSuccessMsg] = useState('')
 
+  // Вынесена в функцию для повторного вызова после оплаты.
   const fetchInvoices = () => {
     billingApi
       .getMyInvoices()
@@ -36,6 +39,7 @@ export default function InvoicesPage() {
     fetchInvoices()
   }, [])
 
+  // API оплаты принимает bookingId (не invoice.id), так настроен endpoint /invoices/{bookingId}/pay.
   const handlePay = async (bookingId: number) => {
     setPayingId(bookingId)
     setError('')
@@ -43,7 +47,7 @@ export default function InvoicesPage() {
       await billingApi.pay(bookingId)
       setSuccessMsg('Счёт успешно оплачен!')
       setTimeout(() => setSuccessMsg(''), 4000)
-      fetchInvoices()
+      fetchInvoices()  // обновляем список — статус изменился на PAID
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.response?.data || 'Ошибка оплаты'
       setError(typeof msg === 'string' ? msg : 'Ошибка оплаты')
@@ -52,6 +56,7 @@ export default function InvoicesPage() {
     }
   }
 
+  // Суммы для статкарточек.
   const totalPaid = invoices
     .filter((i) => i.status === 'PAID')
     .reduce((sum, i) => sum + i.totalAmount, 0)
@@ -78,6 +83,7 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* Статкарточки — показываются только если есть счета */}
       {invoices.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="card flex items-center gap-4">
@@ -128,6 +134,7 @@ export default function InvoicesPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="font-bold text-gray-900">Счёт #{invoice.id}</h3>
+                  {/* Бейдж статуса: зелёный/красный */}
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                       invoice.status === 'PAID'
@@ -139,6 +146,7 @@ export default function InvoicesPage() {
                   </span>
                 </div>
 
+                {/* Три составляющие счёта: проживание + услуги + питание + итого */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-sm">
                   <div>
                     <span className="text-gray-400">Проживание:</span>{' '}
@@ -168,6 +176,7 @@ export default function InvoicesPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center flex-shrink-0">
+                {/* Кнопка оплаты: только для неоплаченных счетов */}
                 {invoice.status === 'UNPAID' && (
                   <button
                     className="btn-success text-sm"
@@ -177,6 +186,7 @@ export default function InvoicesPage() {
                     {payingId === invoice.bookingId ? 'Оплата...' : 'Оплатить'}
                   </button>
                 )}
+                {/* Ссылка на бронь для просмотра деталей */}
                 <Link
                   to={`/bookings/${invoice.bookingId}`}
                   className="btn-secondary text-sm"

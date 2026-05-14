@@ -1,34 +1,38 @@
-name: CodeQL
+name: CodeQL  # статический анализ безопасности от GitHub
 
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+  # Запускается автоматически каждый понедельник в 06:00 UTC.
+  # Это важно: даже если код не менялся, могли появиться новые CVE в библиотеках.
   schedule:
-    # Every Monday at 06:00 UTC — catches newly published CVEs without a code change
     - cron: '0 6 * * 1'
 
 jobs:
   analyze:
-    name: ${{ matrix.language }}
+    name: ${{ matrix.language }}  # "java-kotlin" или "javascript-typescript"
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
+      security-events: write  # нужно для загрузки результатов в GitHub Security tab
 
     strategy:
       fail-fast: false
+      # CodeQL анализирует два языка раздельно — две параллельные задачи.
       matrix:
         language: [java-kotlin, javascript-typescript]
 
     steps:
       - uses: actions/checkout@v4
 
+      # Инициализирует CodeQL: скачивает базу данных языка и настраивает сканер.
       - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      # Java requires a build to generate the CodeQL database
+      # Java/Kotlin: CodeQL анализирует байткод, не исходники — нужна компиляция.
+      # Шаги с if: выполняются только для java-kotlin (JavaScript не требует сборки).
       - if: matrix.language == 'java-kotlin'
         uses: actions/setup-java@v4
         with:
@@ -38,7 +42,9 @@ jobs:
       - if: matrix.language == 'java-kotlin'
         uses: gradle/actions/setup-gradle@v4
 
+      # build -x test: компиляция без запуска тестов — CodeQL только строит семантическую модель.
       - if: matrix.language == 'java-kotlin'
         run: ./gradlew build -x test --no-daemon
 
+      # Запускает анализ и загружает результаты (SARIF) в GitHub Security → Code scanning alerts.
       - uses: github/codeql-action/analyze@v3

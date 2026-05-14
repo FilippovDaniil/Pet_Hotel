@@ -1,12 +1,14 @@
+// Страница управления меню буфета (ADMIN): CRUD через таблицу + модальные окна.
 import React, { useState, useEffect } from 'react'
 import { diningApi } from '../../api/dining.api'
 import type { MenuItem, MenuItemRequest } from '../../types'
 
+// Пустые начальные значения для формы создания нового блюда.
 const defaultForm = (): MenuItemRequest => ({
   name: '',
   category: '',
   price: 0,
-  available: true,
+  available: true,  // по умолчанию блюдо доступно
 })
 
 function Spinner() {
@@ -17,6 +19,7 @@ function Spinner() {
   )
 }
 
+// item=null → создание нового блюда, item=MenuItem → редактирование.
 interface MenuModalProps {
   item: MenuItem | null
   onClose: () => void
@@ -37,6 +40,7 @@ function MenuModal({ item, onClose, onSaved }: MenuModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Обрабатывает text/number inputs и checkbox: type влияет на какое поле читать.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
     setForm((prev) => ({
@@ -51,9 +55,9 @@ function MenuModal({ item, onClose, onSaved }: MenuModalProps) {
     setLoading(true)
     try {
       if (item) {
-        await diningApi.updateMenuItem(item.id, form)
+        await diningApi.updateMenuItem(item.id, form)  // PUT — редактирование
       } else {
-        await diningApi.createMenuItem(form)
+        await diningApi.createMenuItem(form)            // POST — создание
       }
       onSaved()
     } catch (err: any) {
@@ -128,6 +132,7 @@ function MenuModal({ item, onClose, onSaved }: MenuModalProps) {
             />
           </div>
 
+          {/* Чекбокс: контролируется через checked + onChange (не value) */}
           <div className="flex items-center gap-3">
             <input
               id="menu-available"
@@ -168,6 +173,7 @@ export default function ManageMenuPage() {
   const [items, setItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // undefined = закрыт; 'new' = создание; MenuItem = редактирование
   const [editItem, setEditItem] = useState<MenuItem | null | 'new'>()
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -256,6 +262,7 @@ export default function ManageMenuPage() {
                     {item.name}
                   </td>
                   <td className="px-4 py-3">
+                    {/* Пилюля категории */}
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                       {item.category}
                     </span>
@@ -264,6 +271,7 @@ export default function ManageMenuPage() {
                     {item.price.toLocaleString('ru-RU')} ₽
                   </td>
                   <td className="px-4 py-3">
+                    {/* Зелёный/серый бейдж доступности */}
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         item.available
@@ -297,6 +305,7 @@ export default function ManageMenuPage() {
         </div>
       )}
 
+      {/* Модал создания/редактирования */}
       {editItem !== undefined && (
         <MenuModal
           item={editItem === 'new' ? null : editItem}
@@ -305,6 +314,7 @@ export default function ManageMenuPage() {
         />
       )}
 
+      {/* Диалог подтверждения удаления */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">

@@ -6,20 +6,38 @@ plugins {
 
 dependencyManagement {
     imports {
+        // Spring Cloud BOM — содержит согласованные версии Spring Cloud Gateway и Netflix-компонентов.
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${libs.versions.spring.cloud.get()}"
     }
 }
 
 dependencies {
+    // :common — JwtUtil (валидация токенов) и константы.
     implementation project(':common')
+
+    // webflux (не web): Spring Cloud Gateway построен на Reactor Netty (реактивный стек).
+    // Нельзя использовать spring-web вместе с Gateway — они несовместимы в одном приложении.
     implementation libs.spring.boot.starter.webflux
+
+    // spring-cloud-gateway: маршрутизация (predicates, filters), GlobalFilter API.
     implementation libs.spring.cloud.gateway
+
+    // actuator: /actuator/health — используется Docker healthcheck и оркестраторами.
     implementation libs.spring.boot.starter.actuator
+
+    // JSON-логи для Promtail → Loki → Grafana (те же, что и в других сервисах).
     implementation libs.logstash.logback.encoder
+
+    // jjwt: парсинг и валидация JWT в JwtAuthFilter.
+    // Технически эти зависимости уже транзитивно приходят из :common (api-scope),
+    // но явное объявление делает зависимость видимой и предотвращает случайное удаление из common.
     implementation libs.jjwt.api
     runtimeOnly libs.jjwt.impl
     runtimeOnly libs.jjwt.jackson
+
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+
+    // spring-boot-starter-test включает JUnit 5, AssertJ, Mockito и Spring Test WebFlux утилиты.
     testImplementation libs.spring.boot.starter.test
 }

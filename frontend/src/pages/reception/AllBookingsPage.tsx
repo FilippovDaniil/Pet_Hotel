@@ -1,9 +1,12 @@
+// Страница всех бронирований системы (RECEPTION, ADMIN).
+// Включает фильтрацию по статусу (табы) и текстовый поиск.
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { bookingApi } from '../../api/booking.api'
 import type { Booking, BookingStatus } from '../../types'
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from '../../types'
 
+// Конфигурация табов фильтрации: ALL + каждый статус.
 const STATUS_TABS: { label: string; value: BookingStatus | 'ALL' }[] = [
   { label: 'Все', value: 'ALL' },
   { label: 'Ожидает', value: 'PENDING' },
@@ -26,7 +29,7 @@ export default function AllBookingsPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<BookingStatus | 'ALL'>('ALL')
   const [search, setSearch] = useState('')
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)  // ID строки с активной операцией
 
   const fetchBookings = () => {
     setLoading(true)
@@ -46,6 +49,7 @@ export default function AllBookingsPage() {
     fetchBookings()
   }, [])
 
+  // Выполнить действие над конкретной бронью и обновить её в списке (без полного рефетча).
   const doAction = async (
     id: number,
     action: () => Promise<Booking>
@@ -53,6 +57,7 @@ export default function AllBookingsPage() {
     setActionLoadingId(id)
     try {
       const updated = await action()
+      // Оптимистичное обновление: заменяем только изменённую запись
       setBookings((prev) =>
         prev.map((b) => (b.id === updated.id ? updated : b))
       )
@@ -67,6 +72,7 @@ export default function AllBookingsPage() {
     }
   }
 
+  // Клиентская фильтрация: таб + текстовый поиск по ID брони/клиента/номера.
   const filtered = bookings.filter((b) => {
     const matchesTab = activeTab === 'ALL' || b.status === activeTab
     const q = search.toLowerCase()
@@ -88,7 +94,7 @@ export default function AllBookingsPage() {
         </div>
       )}
 
-      {/* Search + tabs */}
+      {/* Поле поиска */}
       <div className="card mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <input
           type="text"
@@ -99,6 +105,7 @@ export default function AllBookingsPage() {
         />
       </div>
 
+      {/* Табы фильтрации по статусу с счётчиками */}
       <div className="flex gap-1 mb-4 flex-wrap">
         {STATUS_TABS.map((tab) => (
           <button
@@ -111,6 +118,7 @@ export default function AllBookingsPage() {
             }`}
           >
             {tab.label}
+            {/* Счётчик рядом с названием таба */}
             <span className="ml-1.5 text-xs opacity-70">
               {tab.value === 'ALL'
                 ? bookings.length
@@ -129,11 +137,14 @@ export default function AllBookingsPage() {
         </div>
       )}
 
+      {/* Таблица бронирований */}
       {!loading && filtered.length > 0 && (
+        // p-0: убираем padding карточки, чтобы таблица прилегала к краям
         <div className="card overflow-x-auto p-0">
           <table className="w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
+                {/* Заголовки колонок генерируются из массива — избегаем дублирования */}
                 {[
                   'ID',
                   'Клиент',
@@ -156,6 +167,7 @@ export default function AllBookingsPage() {
             <tbody className="divide-y divide-gray-100 bg-white">
               {filtered.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50">
+                  {/* font-mono: моноширинный шрифт для числовых ID */}
                   <td className="px-4 py-3 font-mono font-semibold text-gray-900">
                     #{booking.id}
                   </td>
@@ -188,6 +200,7 @@ export default function AllBookingsPage() {
                         Подробнее
                       </Link>
 
+                      {/* Подтвердить: только PENDING */}
                       {booking.status === 'PENDING' && (
                         <button
                           className="btn-success text-xs py-1 px-2"
@@ -204,6 +217,7 @@ export default function AllBookingsPage() {
                         </button>
                       )}
 
+                      {/* Заселить/Выселить: только CONFIRMED */}
                       {booking.status === 'CONFIRMED' && (
                         <>
                           <button

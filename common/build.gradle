@@ -1,26 +1,46 @@
 plugins {
+    // java-library отличается от java тем, что позволяет указывать api-зависимости:
+    // они транзитивно видны всем модулям, которые зависят от common.
     id 'java-library'
+    // Плагин Spring Dependency Management подключает BOM (Bill Of Materials) —
+    // список согласованных версий всех Spring-артефактов. Версии не нужно прописывать вручную.
     alias(libs.plugins.spring.dependency.management)
 }
 
 dependencyManagement {
     imports {
+        // Импортируем BOM Spring Boot: это даёт согласованные версии Jackson, JJWT и др.
+        // libs.versions.spring.boot.get() берёт версию из gradle/libs.versions.toml.
         mavenBom "org.springframework.boot:spring-boot-dependencies:${libs.versions.spring.boot.get()}"
     }
 }
 
 dependencies {
-    api libs.jjwt.api
-    runtimeOnly libs.jjwt.impl
-    runtimeOnly libs.jjwt.jackson
+    // api (не implementation): зависимость транзитивна — сервисы, подключающие common,
+    // автоматически получают jjwt-api в classpath без явного объявления.
+    api libs.jjwt.api             // JJWT API: интерфейсы Jwts, Claims и т.д.
+    runtimeOnly libs.jjwt.impl    // JJWT реализация: нужна только в рантайме, не в classpath при компиляции
+    runtimeOnly libs.jjwt.jackson // JJWT + Jackson: десериализация claims через ObjectMapper
+
+    // Lombok генерирует геттеры/сеттеры/@Builder во время компиляции.
+    // compileOnly — не попадает в итоговый JAR (аннотации обрабатываются до сборки).
+    // annotationProcessor — регистрирует процессор аннотаций Lombok для javac.
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+
+    // Jackson: сериализация/десериализация Kafka-событий в JSON.
+    // api — транзитивна, сервисы-потребители common тоже получат Jackson без повторного объявления.
     api 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    // jsr310 — поддержка Java Time API (LocalDate, LocalDateTime) в Jackson.
     api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
+
+    // Тестовые зависимости: JUnit 5, AssertJ, Mockito — стандартный стартер Spring Boot Test.
     testImplementation libs.spring.boot.starter.test
+    // junit-platform-launcher нужен Gradle для запуска JUnit 5 тестов.
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {
+    // Сообщаем Gradle, что тесты используют JUnit Platform (JUnit 5), а не JUnit 4.
     useJUnitPlatform()
 }

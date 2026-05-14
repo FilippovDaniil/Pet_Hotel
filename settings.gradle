@@ -1,11 +1,15 @@
+// Имя корневого проекта — отображается в Gradle CLI и в IDE.
 rootProject.name = 'pet-hotel'
 
-include 'common'
-include 'customer-service'
-include 'room-service'
-include 'booking-service'
-include 'amenity-service'
-include 'dining-service'
-include 'billing-service'
-include 'api-gateway'
-include 'support-service'
+// include — объявляем каждый модуль Gradle multi-project build.
+// Gradle ищет build.gradle в соответствующей подпапке: settings.gradle → подпапка с тем же именем.
+// Порядок include не влияет на сборку: Gradle сам разрешает зависимости между модулями.
+include 'common'           // общая библиотека: enums, Kafka-события, JwtUtil
+include 'customer-service' // регистрация, логин, JWT — порт 8081
+include 'room-service'     // CRUD номеров, доступность, Redis-кэш — порт 8082
+include 'booking-service'  // бронирование + доп. услуги — порт 8083
+include 'amenity-service'  // справочник услуг + изображения — порт 8084
+include 'dining-service'   // буфет: меню, заказы, лимиты — порт 8085
+include 'billing-service'  // счета и оплата — порт 8086
+include 'api-gateway'      // JWT-фильтр, маршрутизация — порт 8080
+include 'support-service'  // чат поддержки клиент↔admin — порт 8087

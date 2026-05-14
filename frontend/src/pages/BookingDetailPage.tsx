@@ -1,3 +1,5 @@
+// Страница деталей бронирования — доступна всем авторизованным ролям.
+// Кнопки действий отображаются в зависимости от роли и текущего статуса.
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { bookingApi } from '../api/booking.api'
@@ -19,6 +21,7 @@ function Spinner() {
   )
 }
 
+// Форматирует ISO datetime в русский формат с датой и временем: "01.08.2025, 10:00".
 function formatDateTime(dt: string) {
   return new Date(dt).toLocaleString('ru-RU', {
     day: '2-digit',
@@ -30,6 +33,7 @@ function formatDateTime(dt: string) {
 }
 
 export default function BookingDetailPage() {
+  // useParams: извлекает :id из URL /bookings/:id
   const { id } = useParams<{ id: string }>()
   const bookingId = Number(id)
   const role = useAuthStore((s) => s.role)
@@ -38,7 +42,7 @@ export default function BookingDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [actionError, setActionError] = useState('')
+  const [actionError, setActionError] = useState('')  // ошибка конкретного действия (confirm/cancel и т.д.)
   const [actionLoading, setActionLoading] = useState(false)
   const [payLoading, setPayLoading] = useState(false)
 
@@ -48,10 +52,11 @@ export default function BookingDetailPage() {
       const b = await bookingApi.getById(bookingId)
       setBooking(b)
       try {
+        // Счёт может ещё не существовать (создаётся только после booking.completed).
         const inv = await billingApi.getByBooking(bookingId)
         setInvoice(inv)
       } catch {
-        // invoice may not exist yet
+        // 404 — нормальная ситуация для незавершённых броней
       }
     } catch {
       setError('Не удалось загрузить данные брони')
@@ -64,13 +69,15 @@ export default function BookingDetailPage() {
     if (bookingId) fetchData()
   }, [bookingId])
 
+  // Универсальная обёртка для действий (confirm, cancel, checkIn, checkOut).
+  // action — лямбда, возвращающая Promise<Booking>.
   const doAction = async (action: () => Promise<Booking>) => {
     setActionError('')
     setActionLoading(true)
     try {
       const updated = await action()
       setBooking(updated)
-      // Refresh invoice too
+      // После действия обновляем счёт (статус мог измениться)
       try {
         const inv = await billingApi.getByBooking(bookingId)
         setInvoice(inv)
@@ -84,6 +91,7 @@ export default function BookingDetailPage() {
     }
   }
 
+  // Оплата счёта: отдельный loading-стейт, чтобы не блокировать другие кнопки.
   const handlePay = async () => {
     if (!invoice) return
     setPayLoading(true)
@@ -112,6 +120,7 @@ export default function BookingDetailPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
+        {/* Кнопка "Назад" ведёт на разные страницы в зависимости от роли */}
         <Link to={role === 'CUSTOMER' ? '/bookings/my' : '/bookings/all'} className="btn-secondary text-sm">
           ← Назад
         </Link>
@@ -124,7 +133,7 @@ export default function BookingDetailPage() {
         </div>
       )}
 
-      {/* Main booking card */}
+      {/* Основная информация о бронировании */}
       <div className="card mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="section-title mb-0">Детали брони</h2>
@@ -135,6 +144,7 @@ export default function BookingDetailPage() {
           </span>
         </div>
 
+        {/* dl/dt/dd — семантически корректно для пар "ключ: значение" */}
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <dt className="text-gray-500">Клиент ID</dt>
@@ -166,6 +176,7 @@ export default function BookingDetailPage() {
               {new Date(booking.createdAt).toLocaleDateString('ru-RU')}
             </dd>
           </div>
+          {/* col-span-3: занимает всю строку сетки */}
           <div className="col-span-2 sm:col-span-3">
             <dt className="text-gray-500">Итоговая стоимость</dt>
             <dd className="text-xl font-bold text-primary-700 mt-0.5">
@@ -175,10 +186,11 @@ export default function BookingDetailPage() {
         </dl>
       </div>
 
-      {/* Amenities */}
+      {/* Таблица дополнительных услуг */}
       {booking.amenities?.length > 0 && (
         <div className="card mb-4">
           <h2 className="section-title">Дополнительные услуги</h2>
+          {/* overflow-x-auto: таблица скроллируется горизонтально на узких экранах */}
           <div className="overflow-x-auto">
             <table className="w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
@@ -193,6 +205,7 @@ export default function BookingDetailPage() {
                 {booking.amenities.map((a) => (
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium text-gray-900">
+                      {/* ?? a.serviceType: если ключ неизвестен, показываем raw значение */}
                       {SERVICE_TYPE_LABELS[a.serviceType] ?? a.serviceType}
                     </td>
                     <td className="px-4 py-2 text-gray-600">
@@ -212,11 +225,11 @@ export default function BookingDetailPage() {
         </div>
       )}
 
-      {/* Action buttons */}
+      {/* Блок действий — кнопки зависят от роли и статуса */}
       <div className="card mb-4">
         <h2 className="section-title">Действия</h2>
         <div className="flex flex-wrap gap-3">
-          {/* CUSTOMER actions */}
+          {/* Клиент: только отмена активных броней */}
           {role === 'CUSTOMER' &&
             (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
               <button
@@ -228,7 +241,7 @@ export default function BookingDetailPage() {
               </button>
             )}
 
-          {/* RECEPTION actions */}
+          {/* Ресепшн: подтверждение PENDING, заселение/выселение CONFIRMED */}
           {role === 'RECEPTION' && booking.status === 'PENDING' && (
             <button
               className="btn-success"
@@ -257,7 +270,7 @@ export default function BookingDetailPage() {
             </>
           )}
 
-          {/* ADMIN same as RECEPTION */}
+          {/* Администратор: те же действия что и ресепшн */}
           {role === 'ADMIN' && booking.status === 'PENDING' && (
             <button
               className="btn-success"
@@ -286,6 +299,7 @@ export default function BookingDetailPage() {
             </>
           )}
 
+          {/* Нет доступных действий для завершённых/отменённых броней */}
           {(role === 'CUSTOMER' || role === 'ADMIN') &&
             booking.status !== 'PENDING' &&
             booking.status !== 'CONFIRMED' && (
@@ -294,7 +308,7 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
-      {/* Invoice */}
+      {/* Счёт — отображается только если уже создан (booking.completed) */}
       {invoice && (
         <div className="card">
           <div className="flex items-center justify-between mb-4">
@@ -302,14 +316,15 @@ export default function BookingDetailPage() {
             <span
               className={`px-3 py-1 rounded-full text-sm font-semibold ${
                 invoice.status === 'PAID'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-700'
+                  ? 'bg-green-100 text-green-700'  // зелёный = оплачен
+                  : 'bg-red-100 text-red-700'      // красный = не оплачен
               }`}
             >
               {INVOICE_STATUS_LABELS[invoice.status]}
             </span>
           </div>
 
+          {/* Три составляющие счёта: проживание + услуги + питание */}
           <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
             <div>
               <dt className="text-gray-500">Проживание</dt>
@@ -337,6 +352,7 @@ export default function BookingDetailPage() {
             </div>
           </dl>
 
+          {/* Кнопка оплаты доступна только ресепшну для неоплаченных счетов */}
           {role === 'RECEPTION' && invoice.status === 'UNPAID' && (
             <button
               className="btn-success"

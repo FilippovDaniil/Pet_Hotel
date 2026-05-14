@@ -1,3 +1,4 @@
+// Страница истории заказов буфета (CUSTOMER).
 import { useState, useEffect } from 'react'
 import { diningApi } from '../../api/dining.api'
 import type { Order } from '../../types'
@@ -12,6 +13,7 @@ function Spinner() {
   )
 }
 
+// Форматирует ISO datetime в читаемый вид: "01.08.2025, 14:30".
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('ru-RU', {
     day: '2-digit',
@@ -40,6 +42,7 @@ export default function MyOrdersPage() {
       })
   }, [])
 
+  // Суммарные траты — для статкарточки.
   const totalSpent = orders.reduce((s, o) => s + Number(o.totalAmount), 0)
 
   if (loading) return <Spinner />
@@ -54,6 +57,7 @@ export default function MyOrdersPage() {
         </div>
       )}
 
+      {/* Пустое состояние с переходом в меню */}
       {orders.length === 0 && !error && (
         <div className="text-center py-16 text-gray-500">
           <p className="text-5xl mb-4">🍽️</p>
@@ -66,6 +70,7 @@ export default function MyOrdersPage() {
 
       {orders.length > 0 && (
         <>
+          {/* Статкарточки: всего заказов, сумма, дата последнего */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="card flex items-center gap-4">
               <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
@@ -93,6 +98,7 @@ export default function MyOrdersPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Последний заказ</p>
+                {/* orders[0] — последний заказ (предполагаем, что API возвращает по убыванию) */}
                 <p className="text-sm font-semibold text-gray-900">
                   {orders[0] ? formatDate(orders[0].orderTime) : '—'}
                 </p>
@@ -106,9 +112,11 @@ export default function MyOrdersPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      {/* menuItemName денормализован — не изменится при редактировании меню */}
                       <span className="font-bold text-gray-900 text-base">
                         {order.menuItemName || `Позиция #${order.menuItemId}`}
                       </span>
+                      {/* Цветной бейдж способа доставки */}
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           order.deliveryType === 'ROOM_DELIVERY'
@@ -132,6 +140,7 @@ export default function MyOrdersPage() {
                           {Number(order.totalAmount).toLocaleString('ru-RU')} ₽
                         </strong>
                       </div>
+                      {/* Показываем paidByLimit только если > 0 (есть лимит у класса номера) */}
                       {Number(order.paidByLimit) > 0 && (
                         <div>
                           <span className="text-gray-400">По лимиту:</span>{' '}
@@ -140,6 +149,7 @@ export default function MyOrdersPage() {
                           </strong>
                         </div>
                       )}
+                      {/* Показываем extraCharge только если > 0 (лимит был превышен) */}
                       {Number(order.extraCharge) > 0 && (
                         <div>
                           <span className="text-gray-400">Доп. оплата:</span>{' '}
@@ -155,6 +165,7 @@ export default function MyOrdersPage() {
                     </p>
                   </div>
 
+                  {/* Ссылка на бронь, к которой прикреплён заказ */}
                   <Link
                     to={`/bookings/${order.bookingId}`}
                     className="btn-secondary text-xs py-1 px-3 flex-shrink-0"

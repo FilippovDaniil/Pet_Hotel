@@ -11,13 +11,16 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation project(':common')
-    implementation libs.spring.boot.starter.web
+    implementation project(':common')             // Kafka-события, BookingStatus, RoomClass
+    implementation libs.spring.boot.starter.web   // REST API (BookingController)
     implementation libs.spring.boot.starter.data.jpa
     implementation libs.spring.boot.starter.security
     implementation libs.spring.boot.starter.validation
     implementation libs.spring.boot.starter.actuator
+    // webflux: нужен только для WebClient (RoomClient → room-service).
+    // Не создаёт реактивный сервер — приложение по-прежнему работает на Tomcat.
     implementation libs.spring.boot.starter.webflux
+    // spring-kafka: KafkaTemplate для публикации 4 типов событий
     implementation libs.spring.kafka
     implementation libs.logstash.logback.encoder
     implementation libs.springdoc.openapi
@@ -28,5 +31,6 @@ dependencies {
     testImplementation libs.spring.boot.testcontainers
     testImplementation libs.testcontainers.junit.jupiter
     testImplementation libs.testcontainers.postgresql
+    // spring-kafka-test: @EmbeddedKafka — встроенный Kafka-брокер для BookingServiceIT
     testImplementation libs.spring.kafka.test
 }

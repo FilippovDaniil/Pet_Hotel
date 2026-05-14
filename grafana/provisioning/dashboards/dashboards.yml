@@ -1,11 +1,13 @@
+# Конфигурация провайдера дашбордов Grafana.
+# Grafana читает этот файл при старте и загружает все *.json из указанной директории.
 apiVersion: 1
 
 providers:
-  - name: pet-hotel
-    orgId: 1
-    folder: Pet Hotel
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
+  - name: pet-hotel            # внутреннее имя провайдера (произвольное)
+    orgId: 1                   # организация Grafana (по умолчанию = 1)
+    folder: Pet Hotel          # папка в Grafana UI, куда помещаются дашборды
+    type: file                 # источник — файловая система
+    disableDeletion: false     # false = дашборды можно удалить через UI (true = только из файла)
+    updateIntervalSeconds: 30  # как часто Grafana проверяет изменения JSON-файлов
     options:
-      path: /etc/grafana/provisioning/dashboards
+      path: /etc/grafana/provisioning/dashboards  # путь к JSON-файлам дашбордов внутри контейнера

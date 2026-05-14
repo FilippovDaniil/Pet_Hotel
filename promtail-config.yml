@@ -1,45 +1,74 @@
+# Конфигурация Promtail — агент сбора логов от Grafana Labs.
+# Promtail читает stdout контейнеров через Docker socket и отправляет в Loki.
+# Grafana затем визуализирует логи через LogQL-запросы.
+#
+# Поток данных: контейнер → stdout → Promtail → Loki → Grafana
+
 server:
-  http_listen_port: 9080
-  grpc_listen_port: 0
+  http_listen_port: 9080  # HTTP API (metrics, ready, debug) — не используется активно в dev
+  grpc_listen_port: 0     # 0 = gRPC отключён (не нужен для базовой конфигурации)
 
 positions:
+  # Файл для хранения позиций чтения логов — Promtail помнит, до какого места дочитал каждый лог.
+  # Позволяет возобновить чтение после перезапуска контейнера без пропуска или дублирования строк.
   filename: /tmp/positions.yaml
 
 clients:
+  # Адрес Loki для отправки логов (push API).
+  # loki — имя сервиса из docker-compose.yml; Docker DNS разрешает его в IP.
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
   - job_name: containers
+    # docker_sd_configs: Service Discovery через Docker API.
+    # Promtail автоматически обнаруживает все запущенные контейнеры через Docker socket.
     docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
+      - host: unix:///var/run/docker.sock  # монтируется в docker-compose.yml
+        refresh_interval: 5s               # проверять новые/остановленные контейнеры каждые 5 с
 
+    # relabel_configs: переименовываем/создаём labels из метаданных Docker.
+    # Эти labels становятся stream labels в Loki — используются для фильтрации в LogQL.
     relabel_configs:
+      # __meta_docker_container_name = "/booking-service" → job = "booking-service"
+      # regex: /(.*) — срезаем ведущий слеш из имени контейнера.
       - source_labels: [__meta_docker_container_name]
         regex: /(.*)
         target_label: job
 
+      # Дублируем имя контейнера в label container (для группировки по контейнеру в Grafana).
       - source_labels: [__meta_docker_container_name]
         regex: /(.*)
         target_label: container
 
+      # stream = "stdout" или "stderr" — из какого потока взят лог.
       - source_labels: [__meta_docker_container_log_stream]
         target_label: stream
 
+    # pipeline_stages: обрабатываем каждую строку лога по конвейеру.
     pipeline_stages:
+      # json: парсим строку как JSON и извлекаем поля.
+      # Наши сервисы используют LogstashEncoder → каждая строка лога = JSON-объект.
+      # Поля: level, message, service, timestamp определены в logback-spring.xml.
       - json:
           expressions:
-            level: level
-            message: message
-            service: service
-            timestamp: timestamp
+            level: level        # "INFO", "ERROR", "WARN"
+            message: message    # текст лога
+            service: service    # имя сервиса: "booking-service" (из customFields logback)
+            timestamp: timestamp # время события из приложения
+
+      # labels: превращаем извлечённые поля в stream labels Loki.
+      # После этого можно фильтровать в LogQL: {service="booking-service", level="ERROR"}
       - labels:
-          level:
-          service:
+          level:    # label level: "INFO" / "ERROR" / etc.
+          service:  # label service: "booking-service" / "room-service" / etc.
+
+      # timestamp: используем время события из приложения (не время получения Promtail).
+      # Это важно для правильной сортировки в Grafana при задержках отправки.
+      # RFC3339Nano = "2006-01-02T15:04:05.999999999Z07:00" — формат Spring Boot по умолчанию.
       - timestamp:
           source: timestamp
           format: RFC3339Nano
-          fallback_formats:
+          fallback_formats:  # запасные форматы на случай нестандартного вывода
             - RFC3339
             - Unix
             - UnixMs

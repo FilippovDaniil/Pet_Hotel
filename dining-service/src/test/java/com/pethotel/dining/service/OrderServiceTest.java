@@ -25,6 +25,12 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+// Unit-тест OrderService: сложная зависимость — WebClient (HTTP к booking-service).
+// WebClient — реактивный клиент; его цепочку методов нужно мокировать пошагово.
+//
+// @SuppressWarnings("unchecked") — компилятор предупреждает о raw types при работе с generic-интерфейсами
+//   WebClient (RequestHeadersUriSpec, RequestHeadersSpec). Это ложные предупреждения при мокировании.
+// @SuppressWarnings("rawtypes") — аналогично: Mockito требует raw type для некоторых spec-интерфейсов.
 @SuppressWarnings({"unchecked", "rawtypes"})
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -33,16 +39,20 @@ class OrderServiceTest {
     @Mock MenuService menuService;
     @Mock DailyLimitService dailyLimitService;
     @Mock KafkaTemplate<String, Object> kafkaTemplate;
+    // WebClient-цепочка: Builder → WebClient → RequestHeadersUriSpec → RequestHeadersSpec → ResponseSpec.
+    // Каждый метод возвращает следующий объект цепочки — поэтому нужно 5 отдельных моков.
     @Mock WebClient.Builder webClientBuilder;
     @Mock WebClient webClient;
-    @Mock WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
-    @Mock WebClient.RequestHeadersSpec requestHeadersSpec;
-    @Mock WebClient.ResponseSpec responseSpec;
+    @Mock WebClient.RequestHeadersUriSpec requestHeadersUriSpec; // .get() возвращает его
+    @Mock WebClient.RequestHeadersSpec requestHeadersSpec;       // .uri(...) возвращает его
+    @Mock WebClient.ResponseSpec responseSpec;                   // .retrieve() возвращает его
     @InjectMocks OrderService orderService;
 
+    // Настраиваем цепочку WebClient-моков один раз перед каждым тестом.
+    // lenient() — некоторые тесты (unavailableItem, getByBookingId) не доходят до WebClient;
+    // без lenient() Mockito выдаст UnnecessaryStubbingException для таких тестов.
     @BeforeEach
     void setUp() {
-        // lenient: some tests (unavailable item, getByBookingId) never reach WebClient
         lenient().when(webClientBuilder.build()).thenReturn(webClient);
         lenient().when(webClient.get()).thenReturn(requestHeadersUriSpec);
         lenient().when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
@@ -50,21 +60,25 @@ class OrderServiceTest {
     }
 
     // ── limit split logic ────────────────────────────────────────────────────────
+    // Логика расщепления: paidByLimit + extraCharge == totalAmount.
+    // Инвариант проверяется для всех комбинаций: нет лимита, в лимите, лимит исчерпан, частичный.
 
+    // ORDINARY: лимит 0 → весь заказ = extraCharge. 2 × 500 = 1000 → extraCharge=1000, paidByLimit=0.
     @Test
     void createOrder_ordinaryRoom_zeroLimit_allExtraCharge() {
-        stubRoomClass(RoomClass.ORDINARY);
+        stubRoomClass(RoomClass.ORDINARY); // WebClient вернёт roomClass=ORDINARY
         when(menuService.findItem(1L)).thenReturn(menuItem(1L, new BigDecimal("500"), true));
         when(dailyLimitService.getDailyLimit(RoomClass.ORDINARY)).thenReturn(BigDecimal.ZERO);
         when(dailyLimitService.getDailySpent(1L)).thenReturn(BigDecimal.ZERO);
         stubSave();
 
-        OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 2));
+        OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 2)); // 2 порции × 500 = 1000
 
-        assertThat(result.getPaidByLimit()).isEqualByComparingTo("0");
-        assertThat(result.getExtraCharge()).isEqualByComparingTo("1000");
+        assertThat(result.getPaidByLimit()).isEqualByComparingTo("0");    // лимита нет
+        assertThat(result.getExtraCharge()).isEqualByComparingTo("1000"); // всё на доплату
     }
 
+    // MIDDLE: лимит 1000, потрачено 600, остаток 400. Заказ 200 < 400 → всё покрыто лимитом.
     @Test
     void createOrder_middleRoom_withinLimit_noExtraCharge() {
         stubRoomClass(RoomClass.MIDDLE);
@@ -75,10 +89,11 @@ class OrderServiceTest {
 
         OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 1)); // total = 200
 
-        assertThat(result.getPaidByLimit()).isEqualByComparingTo("200");
+        assertThat(result.getPaidByLimit()).isEqualByComparingTo("200"); // заказ укладывается
         assertThat(result.getExtraCharge()).isEqualByComparingTo("0");
     }
 
+    // MIDDLE: лимит исчерпан (spent == limit, remaining = 0) → всё extraCharge.
     @Test
     void createOrder_middleRoom_limitExhausted_fullExtraCharge() {
         stubRoomClass(RoomClass.MIDDLE);
@@ -90,9 +105,10 @@ class OrderServiceTest {
         OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 1));
 
         assertThat(result.getPaidByLimit()).isEqualByComparingTo("0");
-        assertThat(result.getExtraCharge()).isEqualByComparingTo("300");
+        assertThat(result.getExtraCharge()).isEqualByComparingTo("300"); // весь заказ — доплата
     }
 
+    // Частичный лимит: потрачено 700, остаток 300, заказ 400 → 300 из лимита + 100 доплата.
     @Test
     void createOrder_middleRoom_partialLimit_splitCharge() {
         stubRoomClass(RoomClass.MIDDLE);
@@ -103,10 +119,11 @@ class OrderServiceTest {
 
         OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 1)); // total = 400
 
-        assertThat(result.getPaidByLimit()).isEqualByComparingTo("300");
-        assertThat(result.getExtraCharge()).isEqualByComparingTo("100");
+        assertThat(result.getPaidByLimit()).isEqualByComparingTo("300"); // остаток лимита
+        assertThat(result.getExtraCharge()).isEqualByComparingTo("100"); // превышение
     }
 
+    // PREMIUM: лимит 3000, потрачено 0, заказ 1000 < 3000 → полное покрытие.
     @Test
     void createOrder_premiumRoom_fullyCovered() {
         stubRoomClass(RoomClass.PREMIUM);
@@ -123,6 +140,8 @@ class OrderServiceTest {
 
     // ── delivery type / menuItemName ──────────────────────────────────────────────
 
+    // menuItemName денормализован в Order — сохраняется имя блюда на момент заказа.
+    // Это защита от изменения названия позиции меню: история заказов не меняется.
     @Test
     void createOrder_storesMenuItemNameFromMenuItem() {
         stubRoomClass(RoomClass.MIDDLE);
@@ -133,9 +152,10 @@ class OrderServiceTest {
 
         OrderDto result = orderService.createOrder(1L, orderRequest(1L, 1L, 1));
 
-        assertThat(result.getMenuItemName()).isEqualTo("Test Item");
+        assertThat(result.getMenuItemName()).isEqualTo("Test Item"); // взято из menuItem.name
     }
 
+    // DeliveryType.DINING_ROOM — клиент придёт в столовую сам.
     @Test
     void createOrder_storesDiningRoomDeliveryType() {
         stubRoomClass(RoomClass.MIDDLE);
@@ -151,6 +171,7 @@ class OrderServiceTest {
         assertThat(result.getDeliveryType()).isEqualTo(DeliveryType.DINING_ROOM);
     }
 
+    // DeliveryType.ROOM_DELIVERY — доставка в номер.
     @Test
     void createOrder_storesRoomDeliveryType() {
         stubRoomClass(RoomClass.PREMIUM);
@@ -168,6 +189,8 @@ class OrderServiceTest {
 
     // ── validation ───────────────────────────────────────────────────────────────
 
+    // Позиция недоступна (available = false) → IllegalStateException до обращения к WebClient.
+    // WebClient-цепочка не вызывается → lenient() в @BeforeEach не создаёт проблем.
     @Test
     void createOrder_unavailableItem_throwsIllegalState() {
         when(menuService.findItem(1L)).thenReturn(menuItem(1L, new BigDecimal("200"), false));
@@ -179,6 +202,9 @@ class OrderServiceTest {
 
     // ── events ───────────────────────────────────────────────────────────────────
 
+    // После создания заказа публикуется ORDER_CREATED в Kafka.
+    // billing-service подписан на этот топик и добавляет extraCharge к счёту.
+    // anyString() — ключ сообщения (bookingId.toString()); проверяем только топик и наличие события.
     @Test
     void createOrder_publishesOrderCreatedEvent() {
         stubRoomClass(RoomClass.PREMIUM);
@@ -206,6 +232,7 @@ class OrderServiceTest {
 
     // ── getByCustomerId ──────────────────────────────────────────────────────────
 
+    // findByCustomerIdOrderByOrderTimeDesc — derived query: SELECT ... WHERE customerId = ? ORDER BY orderTime DESC.
     @Test
     void getByCustomerId_returnsMappedList() {
         when(orderRepository.findByCustomerIdOrderByOrderTimeDesc(10L))
@@ -226,6 +253,7 @@ class OrderServiceTest {
         assertThat(result).isEmpty();
     }
 
+    // Маппинг: menuItemName и deliveryType переносятся из Entity в DTO.
     @Test
     void getByCustomerId_mapsMenuItemNameAndDeliveryType() {
         Order o = order(1L);
@@ -241,6 +269,9 @@ class OrderServiceTest {
 
     // ── helpers ──────────────────────────────────────────────────────────────────
 
+    // stubRoomClass: имитирует ответ booking-service на GET /api/bookings/{id}.
+    // Mono.just(response) — реактивная обёртка над готовым объектом.
+    // bodyToMono() внутри OrderService вызывает .block() → возвращает response синхронно.
     private void stubRoomClass(RoomClass roomClass) {
         OrderService.BookingResponse response = new OrderService.BookingResponse();
         response.setRoomClass(roomClass);
@@ -248,6 +279,7 @@ class OrderServiceTest {
                 .thenReturn(Mono.just(response));
     }
 
+    // Имитирует присвоение id при сохранении в БД (как делает Hibernate через SERIAL).
     private void stubSave() {
         when(orderRepository.save(any())).thenAnswer(inv -> {
             Order o = inv.getArgument(0);
@@ -261,7 +293,7 @@ class OrderServiceTest {
         req.setBookingId(bookingId);
         req.setMenuItemId(menuItemId);
         req.setQuantity(quantity);
-        req.setDeliveryType(DeliveryType.DINING_ROOM);
+        req.setDeliveryType(DeliveryType.DINING_ROOM); // тип по умолчанию для большинства тестов
         return req;
     }
 
@@ -272,6 +304,7 @@ class OrderServiceTest {
                 .build();
     }
 
+    // Заглушка Order с предзаполненными полями для тестов getByBookingId/getByCustomerId.
     private Order order(Long id) {
         return Order.builder()
                 .id(id).bookingId(1L).customerId(1L).menuItemId(1L)

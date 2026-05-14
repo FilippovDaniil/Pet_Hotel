@@ -1,3 +1,4 @@
+// Страница поиска и просмотра номеров (CUSTOMER, ADMIN).
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { roomApi } from '../../api/room.api'
@@ -15,14 +16,16 @@ function Spinner() {
 export default function RoomsPage() {
   const navigate = useNavigate()
 
+  // Начальные значения дат: сегодня/завтра.
+  // toISOString() возвращает "2025-08-01T00:00:00.000Z"; split('T')[0] → "2025-08-01".
   const today = new Date().toISOString().split('T')[0]
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]  // +24 ч в мс
 
   const [checkIn, setCheckIn] = useState(today)
   const [checkOut, setCheckOut] = useState(tomorrow)
   const [guests, setGuests] = useState(1)
   const [rooms, setRooms] = useState<Room[]>([])
-  const [searched, setSearched] = useState(false)
+  const [searched, setSearched] = useState(false)   // false = поиск ещё не выполнялся
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -31,6 +34,7 @@ export default function RoomsPage() {
     setError('')
     setLoading(true)
     try {
+      // GET /api/rooms/available?checkIn=...&checkOut=...&guests=...
       const results = await roomApi.search(checkIn, checkOut, guests)
       setRooms(results)
       setSearched(true)
@@ -41,17 +45,20 @@ export default function RoomsPage() {
     }
   }
 
+  // Расчёт количества ночей для отображения итоговой суммы.
+  // Math.max(1, ...) — минимум 1 ночь, чтобы не показывать 0 при некорректных датах.
   const nights =
     checkIn && checkOut
       ? Math.max(
           1,
           Math.round(
             (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
-              86400000
+              86400000   // мс в сутках
           )
         )
       : 1
 
+  // Переход на форму создания брони с предзаполненными параметрами через query string.
   const handleBook = (room: Room) => {
     navigate(
       `/bookings/new?roomId=${room.id}&checkIn=${checkIn}&checkOut=${checkOut}`
@@ -62,8 +69,9 @@ export default function RoomsPage() {
     <div>
       <h1 className="page-title">Поиск номеров</h1>
 
-      {/* Search form */}
+      {/* Форма поиска */}
       <div className="card mb-6">
+        {/* flex-wrap: поля переносятся на следующую строку на узком экране */}
         <form
           onSubmit={handleSearch}
           className="flex flex-wrap gap-4 items-end"
@@ -77,7 +85,7 @@ export default function RoomsPage() {
               type="date"
               className="input"
               value={checkIn}
-              min={today}
+              min={today}   // нельзя выбрать прошедшую дату
               onChange={(e) => setCheckIn(e.target.value)}
               required
             />
@@ -91,7 +99,7 @@ export default function RoomsPage() {
               type="date"
               className="input"
               value={checkOut}
-              min={checkIn || today}
+              min={checkIn || today}  // выезд не раньше заезда
               onChange={(e) => setCheckOut(e.target.value)}
               required
             />
@@ -125,6 +133,7 @@ export default function RoomsPage() {
 
       {loading && <Spinner />}
 
+      {/* Состояние до первого поиска */}
       {!loading && !searched && (
         <div className="text-center py-16 text-gray-500">
           <p className="text-5xl mb-4">🏨</p>
@@ -133,6 +142,7 @@ export default function RoomsPage() {
         </div>
       )}
 
+      {/* Поиск выполнен, но ничего не найдено */}
       {!loading && searched && rooms.length === 0 && (
         <div className="text-center py-16 text-gray-500">
           <p className="text-5xl mb-4">😔</p>
@@ -141,8 +151,10 @@ export default function RoomsPage() {
         </div>
       )}
 
+      {/* Результаты поиска */}
       {!loading && rooms.length > 0 && (
         <>
+          {/* Склонение "ночь/ночи/ночей" — простая ручная локализация */}
           <p className="text-sm text-gray-500 mb-4">
             Найдено номеров: <strong>{rooms.length}</strong> · {nights}{' '}
             {nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей'}
@@ -154,6 +166,7 @@ export default function RoomsPage() {
                   <h3 className="text-lg font-bold text-gray-900">
                     Номер #{room.roomNumber}
                   </h3>
+                  {/* Цветной бейдж класса: ROOM_CLASS_COLORS содержит Tailwind классы */}
                   <span
                     className={`px-2.5 py-1 rounded-full text-xs font-semibold ${ROOM_CLASS_COLORS[room.roomClass]}`}
                   >
@@ -166,6 +179,7 @@ export default function RoomsPage() {
                   <span>💰 {room.pricePerNight.toLocaleString('ru-RU')} ₽/ночь</span>
                 </div>
 
+                {/* line-clamp-2: обрезает описание до 2 строк с "..." */}
                 {room.description && (
                   <p className="text-sm text-gray-500 line-clamp-2">
                     {room.description}

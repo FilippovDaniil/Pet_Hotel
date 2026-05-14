@@ -11,17 +11,21 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation project(':common')
-    implementation libs.spring.boot.starter.web
-    implementation libs.spring.boot.starter.data.jpa
-    implementation libs.spring.boot.starter.security
-    implementation libs.spring.boot.starter.validation
-    implementation libs.spring.boot.starter.actuator
+    implementation project(':common')                    // Role enum (используется в SupportMessage.senderRole строкой)
+    implementation libs.spring.boot.starter.web          // REST: SupportController
+    implementation libs.spring.boot.starter.data.jpa     // JPA: SupportMessage, SupportMessageRepository
+    implementation libs.spring.boot.starter.security     // SecurityConfig: stateless, permitAll
+    implementation libs.spring.boot.starter.validation   // @Valid, @NotBlank на SendMessageRequest
+    implementation libs.spring.boot.starter.actuator     // /actuator/health для Docker healthcheck
+    // spring-kafka: dependency объявлена, но в текущей версии сервис не публикует и не слушает Kafka.
+    // Зависимость сохранена для будущих уведомлений (push notification клиенту при новом ответе admin).
     implementation libs.spring.kafka
-    implementation libs.logstash.logback.encoder
-    implementation libs.springdoc.openapi
+    implementation libs.logstash.logback.encoder         // JSON-логи → Loki
+    implementation libs.springdoc.openapi                // Swagger UI: /swagger-ui.html
     runtimeOnly libs.postgresql
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+    // Только базовый тест-стартер: у сервиса нет написанных тестов.
+    // Тестирование chat-логики требует либо WebSocketIT, либо поллинга — TODO в будущем.
     testImplementation libs.spring.boot.starter.test
 }

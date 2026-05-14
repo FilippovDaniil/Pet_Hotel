@@ -1,39 +1,54 @@
+# Gradle Version Catalog — централизованное управление версиями зависимостей.
+# Описание: https://docs.gradle.org/current/userguide/platforms.html
+# Используется в build.gradle через алиасы: libs.spring.boot.starter.web и т.д.
+# Секции: [versions] → версии, [libraries] → зависимости, [plugins] → плагины.
+
 [versions]
-spring-boot = "3.3.5"
-spring-cloud = "2023.0.3"
-postgresql = "42.7.3"
-jjwt = "0.12.3"
-lombok = "1.18.34"
-mapstruct = "1.5.5.Final"
-logstash-logback = "7.4"
-springdoc = "2.6.0"
-testcontainers = "1.20.4"
+spring-boot = "3.3.5"          # Spring Boot — основной фреймворк
+spring-cloud = "2023.0.3"      # Spring Cloud BOM — управляет версиями cloud-зависимостей
+postgresql = "42.7.3"          # JDBC-драйвер PostgreSQL
+jjwt = "0.12.3"                # Java JWT (JJWT) — генерация и проверка токенов
+lombok = "1.18.34"             # Lombok — генерация boilerplate кода (@Data, @Builder и т.д.)
+mapstruct = "1.5.5.Final"      # MapStruct — маппинг между Entity и DTO (кодогенерация)
+logstash-logback = "7.4"       # Logstash Logback Encoder — JSON-логи для Loki/Promtail
+springdoc = "2.6.0"            # SpringDoc OpenAPI — автоматическая генерация Swagger UI
+testcontainers = "1.20.4"      # Testcontainers — Docker-контейнеры в интеграционных тестах
 
 [libraries]
-spring-boot-starter-web           = { module = "org.springframework.boot:spring-boot-starter-web" }
-spring-boot-starter-data-jpa      = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
-spring-boot-starter-security      = { module = "org.springframework.boot:spring-boot-starter-security" }
-spring-boot-starter-data-redis    = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
-spring-boot-starter-validation    = { module = "org.springframework.boot:spring-boot-starter-validation" }
-spring-boot-starter-actuator      = { module = "org.springframework.boot:spring-boot-starter-actuator" }
-spring-boot-starter-webflux       = { module = "org.springframework.boot:spring-boot-starter-webflux" }
-spring-kafka                      = { module = "org.springframework.kafka:spring-kafka" }
-spring-cloud-gateway              = { module = "org.springframework.cloud:spring-cloud-starter-gateway" }
-postgresql                        = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+# Spring Boot starters — автоконфигурируют нужные компоненты при добавлении в classpath
+spring-boot-starter-web           = { module = "org.springframework.boot:spring-boot-starter-web" }           # Tomcat + Spring MVC + Jackson
+spring-boot-starter-data-jpa      = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }      # Hibernate + Spring Data repositories
+spring-boot-starter-security      = { module = "org.springframework.boot:spring-boot-starter-security" }      # Spring Security (api-gateway)
+spring-boot-starter-data-redis    = { module = "org.springframework.boot:spring-boot-starter-data-redis" }    # Lettuce клиент + RedisTemplate
+spring-boot-starter-validation    = { module = "org.springframework.boot:spring-boot-starter-validation" }    # Bean Validation (@Valid, @NotNull и т.д.)
+spring-boot-starter-actuator      = { module = "org.springframework.boot:spring-boot-starter-actuator" }      # /actuator/health для мониторинга
+spring-boot-starter-webflux       = { module = "org.springframework.boot:spring-boot-starter-webflux" }       # WebClient для межсервисных HTTP-вызовов
+spring-kafka                      = { module = "org.springframework.kafka:spring-kafka" }                     # @KafkaListener + KafkaTemplate
+spring-cloud-gateway              = { module = "org.springframework.cloud:spring-cloud-starter-gateway" }     # api-gateway: маршрутизация + фильтры
+
+# Базы данных
+postgresql                        = { module = "org.postgresql:postgresql", version.ref = "postgresql" }      # PostgreSQL JDBC runtime
+
+# JWT: три артефакта нужны вместе — api (интерфейс), impl (реализация), jackson (сериализация)
 jjwt-api                          = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl                         = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson                      = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
-lombok                            = { module = "org.projectlombok:lombok", version.ref = "lombok" }
-mapstruct                         = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
-mapstruct-processor               = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
-logstash-logback-encoder          = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback" }
-springdoc-openapi                 = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
-spring-boot-starter-test          = { module = "org.springframework.boot:spring-boot-starter-test" }
-spring-boot-testcontainers        = { module = "org.springframework.boot:spring-boot-testcontainers" }
-spring-kafka-test                 = { module = "org.springframework.kafka:spring-kafka-test" }
-testcontainers-junit-jupiter      = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
-testcontainers-postgresql         = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+
+# Утилиты разработки
+lombok                            = { module = "org.projectlombok:lombok", version.ref = "lombok" }           # compileOnly + annotationProcessor
+mapstruct                         = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }         # runtime-API (интерфейсы)
+mapstruct-processor               = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" } # annotationProcessor (кодогенерация)
+logstash-logback-encoder          = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback" }  # JSON-формат для stdout
+springdoc-openapi                 = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }     # Swagger UI + /v3/api-docs
+
+# Тестирование
+spring-boot-starter-test          = { module = "org.springframework.boot:spring-boot-starter-test" }          # JUnit 5 + Mockito + AssertJ
+spring-boot-testcontainers        = { module = "org.springframework.boot:spring-boot-testcontainers" }        # @ServiceConnection интеграция
+spring-kafka-test                 = { module = "org.springframework.kafka:spring-kafka-test" }                # @EmbeddedKafka
+testcontainers-junit-jupiter      = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }   # @Testcontainers + @Container
+testcontainers-postgresql         = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }      # PostgreSQLContainer
 
 [plugins]
-spring-boot               = { id = "org.springframework.boot", version.ref = "spring-boot" }
-spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.6" }
+# Плагины подключаются через alias в build.gradle: alias(libs.plugins.spring.boot)
+spring-boot               = { id = "org.springframework.boot", version.ref = "spring-boot" }             # bootJar, bootRun задачи
+spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.6" }             # управляет BOM-версиями (без version.ref — нет в [versions])

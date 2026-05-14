@@ -1,3 +1,4 @@
+// Страница "Мои брони" — список бронирований текущего клиента (CUSTOMER).
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { bookingApi } from '../../api/booking.api'
@@ -16,9 +17,10 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [cancellingId, setCancellingId] = useState<number | null>(null)
-  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null)
+  const [cancellingId, setCancellingId] = useState<number | null>(null)      // ID брони, которая сейчас отменяется
+  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null) // ID брони в диалоге подтверждения
 
+  // Вынесен в отдельную функцию, чтобы можно было перезагрузить список после отмены.
   const fetchBookings = () => {
     setLoading(true)
     bookingApi
@@ -38,11 +40,11 @@ export default function MyBookingsPage() {
   }, [])
 
   const handleCancel = async (id: number) => {
-    setCancellingId(id)
-    setConfirmCancelId(null)
+    setCancellingId(id)       // показываем "Отмена..." на кнопке конкретной строки
+    setConfirmCancelId(null)  // закрываем диалог подтверждения
     try {
       await bookingApi.cancel(id)
-      fetchBookings()
+      fetchBookings()         // обновляем список после успешной отмены
     } catch {
       setError('Не удалось отменить бронь')
     } finally {
@@ -62,6 +64,7 @@ export default function MyBookingsPage() {
         </div>
       )}
 
+      {/* Пустое состояние с призывом к действию */}
       {bookings.length === 0 && !error && (
         <div className="text-center py-16 text-gray-500">
           <p className="text-5xl mb-4">📋</p>
@@ -84,6 +87,7 @@ export default function MyBookingsPage() {
                   <h3 className="font-bold text-gray-900">
                     Бронь #{booking.id}
                   </h3>
+                  {/* Цветной бейдж статуса */}
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${BOOKING_STATUS_COLORS[booking.status]}`}
                   >
@@ -91,6 +95,7 @@ export default function MyBookingsPage() {
                   </span>
                 </div>
 
+                {/* Основные параметры в сетке */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-sm text-gray-600">
                   <div>
                     <span className="text-gray-400">Номер:</span>{' '}
@@ -116,6 +121,7 @@ export default function MyBookingsPage() {
                   </div>
                 </div>
 
+                {/* Краткая информация об услугах */}
                 {booking.amenities?.length > 0 && (
                   <p className="text-xs text-gray-400 mt-1">
                     Услуги: {booking.amenities.length}
@@ -123,6 +129,7 @@ export default function MyBookingsPage() {
                 )}
               </div>
 
+              {/* Кнопки действий: flex-shrink-0 предотвращает сжатие */}
               <div className="flex gap-2 flex-shrink-0">
                 <Link
                   to={`/bookings/${booking.id}`}
@@ -131,11 +138,12 @@ export default function MyBookingsPage() {
                   Подробнее
                 </Link>
 
+                {/* Кнопка отмены: только для PENDING и CONFIRMED статусов */}
                 {(booking.status === 'PENDING' ||
                   booking.status === 'CONFIRMED') && (
                   <button
                     className="btn-danger text-sm"
-                    onClick={() => setConfirmCancelId(booking.id)}
+                    onClick={() => setConfirmCancelId(booking.id)}  // открыть диалог
                     disabled={cancellingId === booking.id}
                   >
                     {cancellingId === booking.id ? 'Отмена...' : 'Отменить'}
@@ -147,7 +155,8 @@ export default function MyBookingsPage() {
         ))}
       </div>
 
-      {/* Confirm cancel dialog */}
+      {/* Модальный диалог подтверждения отмены.
+          fixed inset-0: перекрывает весь экран; z-50: поверх всего контента. */}
       {confirmCancelId !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
@@ -161,7 +170,7 @@ export default function MyBookingsPage() {
             <div className="flex gap-3">
               <button
                 className="btn-secondary flex-1"
-                onClick={() => setConfirmCancelId(null)}
+                onClick={() => setConfirmCancelId(null)}  // закрыть диалог без действий
               >
                 Нет, оставить
               </button>

@@ -1,3 +1,4 @@
+// Страница управления номерами (ADMIN): CRUD через таблицу + модальные окна.
 import React, { useState, useEffect } from 'react'
 import { roomApi } from '../../api/room.api'
 import type { Room, RoomClass, RoomRequest } from '../../types'
@@ -5,6 +6,7 @@ import { ROOM_CLASS_LABELS, ROOM_CLASS_COLORS } from '../../types'
 
 const ROOM_CLASSES: RoomClass[] = ['ORDINARY', 'MIDDLE', 'PREMIUM']
 
+// Фабрика пустой формы для создания нового номера.
 const defaultForm = (): RoomRequest => ({
   roomNumber: '',
   roomClass: 'ORDINARY',
@@ -21,13 +23,15 @@ function Spinner() {
   )
 }
 
+// Пропсы модала: room=null → создание, room=Room → редактирование.
 interface RoomModalProps {
   room: Room | null
   onClose: () => void
-  onSaved: () => void
+  onSaved: () => void  // вызывается после успешного сохранения → обновляет список
 }
 
 function RoomModal({ room, onClose, onSaved }: RoomModalProps) {
+  // Предзаполняем форму из существующего номера или пустыми значениями.
   const [form, setForm] = useState<RoomRequest>(
     room
       ? {
@@ -42,6 +46,7 @@ function RoomModal({ room, onClose, onSaved }: RoomModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Универсальный обработчик: числовые поля конвертируем в Number.
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -62,6 +67,7 @@ function RoomModal({ room, onClose, onSaved }: RoomModalProps) {
     setError('')
     setLoading(true)
     try {
+      // room != null → редактирование (PUT), иначе → создание (POST).
       if (room) {
         await roomApi.update(room.id, form)
       } else {
@@ -200,6 +206,7 @@ export default function ManageRoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // undefined = модал закрыт; 'new' = создание; Room = редактирование.
   const [editRoom, setEditRoom] = useState<Room | null | 'new'>()
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -223,8 +230,8 @@ export default function ManageRoomsPage() {
   }, [])
 
   const handleSaved = () => {
-    setEditRoom(undefined)
-    fetchRooms()
+    setEditRoom(undefined)  // закрываем модал
+    fetchRooms()            // обновляем список
   }
 
   const handleDelete = async (id: number) => {
@@ -301,6 +308,7 @@ export default function ManageRoomsPage() {
                   <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
                     {room.pricePerNight.toLocaleString('ru-RU')} ₽
                   </td>
+                  {/* truncate: обрезаем длинное описание в таблице */}
                   <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
                     {room.description || '—'}
                   </td>
@@ -314,7 +322,7 @@ export default function ManageRoomsPage() {
                       </button>
                       <button
                         className="btn-danger text-xs py-1 px-2"
-                        onClick={() => setDeleteId(room.id)}
+                        onClick={() => setDeleteId(room.id)}  // открывает диалог подтверждения
                       >
                         Удалить
                       </button>
@@ -327,7 +335,7 @@ export default function ManageRoomsPage() {
         </div>
       )}
 
-      {/* Room modal */}
+      {/* Модал создания/редактирования номера */}
       {editRoom !== undefined && (
         <RoomModal
           room={editRoom === 'new' ? null : editRoom}
@@ -336,7 +344,7 @@ export default function ManageRoomsPage() {
         />
       )}
 
-      {/* Delete confirm */}
+      {/* Диалог подтверждения удаления */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">

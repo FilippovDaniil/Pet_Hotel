@@ -11,19 +11,28 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation project(':common')
-    implementation libs.spring.boot.starter.web
-    implementation libs.spring.boot.starter.data.jpa
-    implementation libs.spring.boot.starter.security
+    implementation project(':common')                           // RoomClass, OrderCreatedEvent, KafkaTopics
+    implementation libs.spring.boot.starter.web                // REST: MenuController, OrderController
+    implementation libs.spring.boot.starter.data.jpa           // JPA: MenuItem, Order repositories
+    implementation libs.spring.boot.starter.security           // SecurityConfig stateless
+    // spring-data-redis: два механизма в одном сервисе:
+    //   1. RedisCacheManager — @Cacheable("menu-items") с TTL 1 час
+    //   2. StringRedisTemplate — DailyLimitService: прямой доступ, ключи "dining:limit:*", TTL до полуночи
     implementation libs.spring.boot.starter.data.redis
-    implementation libs.spring.boot.starter.validation
-    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.validation         // @Valid на OrderRequest
+    implementation libs.spring.boot.starter.actuator           // /actuator/health
+    // webflux: WebClient для межсервисного вызова к booking-service (получить roomClass для лимита).
+    // Не создаёт реактивный сервер — приложение работает на Tomcat.
     implementation libs.spring.boot.starter.webflux
+    // spring-kafka: KafkaTemplate для публикации ORDER_CREATED после каждого заказа.
     implementation libs.spring.kafka
-    implementation libs.logstash.logback.encoder
-    implementation libs.springdoc.openapi
+    implementation libs.logstash.logback.encoder               // JSON-логи → Loki
+    implementation libs.springdoc.openapi                      // Swagger
     runtimeOnly libs.postgresql
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+    // Только базовый тест-стартер: unit-тесты с Mockito.
+    // Kafka используется как producer (lazy init) → EmbeddedKafka не нужен.
+    // Redis мокируется через StringRedisTemplate @Mock.
     testImplementation libs.spring.boot.starter.test
 }

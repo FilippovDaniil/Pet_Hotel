@@ -1,3 +1,5 @@
+// Страница каталога дополнительных услуг — просмотр для всех ролей.
+// Показывает карточки услуг с ценами по каждому классу номера.
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { amenityApi } from '../../api/amenity.api'
@@ -5,6 +7,7 @@ import type { Amenity } from '../../types'
 import type { ServiceType } from '../../types/booking'
 import { SERVICE_TYPE_LABELS } from '../../types/booking'
 
+// Иконки для карточек без изображения.
 const SERVICE_ICONS: Record<ServiceType, string> = {
   SAUNA:        '🧖',
   BATH:         '🛁',
@@ -14,6 +17,7 @@ const SERVICE_ICONS: Record<ServiceType, string> = {
   MASSAGE:      '💆',
 }
 
+// Заглушки описаний — используются когда у услуги не заполнено поле description.
 const FALLBACK_DESCRIPTIONS: Record<ServiceType, string> = {
   SAUNA:        'Финская сауна с парилкой, бассейном для охлаждения и зоной отдыха. Максимальная температура 90°C.',
   BATH:         'Традиционная русская баня на дровах с берёзовыми вениками. Идеально для восстановления после дороги.',
@@ -23,27 +27,32 @@ const FALLBACK_DESCRIPTIONS: Record<ServiceType, string> = {
   MASSAGE:      'Классический расслабляющий массаж от профессиональных массажистов. Продолжительность 60 минут.',
 }
 
+// Таблица цен по классам номеров (соответствует AmenityPriceCalculator.java в backend).
+// ORDINARY: полная цена, MIDDLE: скидка 30%, PREMIUM: первый раз бесплатно (некоторые).
 const PRICE_BY_CLASS: Record<ServiceType, { ORDINARY: string; MIDDLE: string; PREMIUM: string }> = {
   SAUNA:        { ORDINARY: '2 000 ₽', MIDDLE: '1 400 ₽', PREMIUM: '1-я бесплатно' },
-  BATH:         { ORDINARY: '2 000 ₽', MIDDLE: '1 400 ₽', PREMIUM: '1-я бесплатно¹' },
+  BATH:         { ORDINARY: '2 000 ₽', MIDDLE: '1 400 ₽', PREMIUM: '1-я бесплатно¹' },  // ¹ делит квоту с сауной
   POOL:         { ORDINARY: '500 ₽',   MIDDLE: '350 ₽',   PREMIUM: 'Бесплатно' },
   BILLIARD_RUS: { ORDINARY: '600 ₽',   MIDDLE: '600 ₽',   PREMIUM: '600 ₽' },
   BILLIARD_US:  { ORDINARY: '600 ₽',   MIDDLE: '600 ₽',   PREMIUM: '600 ₽' },
   MASSAGE:      { ORDINARY: '3 000 ₽', MIDDLE: '3 000 ₽', PREMIUM: '1-й бесплатно' },
 }
 
+// Цвета бейджей классов (согласованы с ROOM_CLASS_COLORS в room.ts).
 const CLASS_COLORS = {
   ORDINARY: 'bg-gray-100 text-gray-700',
   MIDDLE:   'bg-blue-100 text-blue-700',
   PREMIUM:  'bg-amber-100 text-amber-700',
 }
 
+// Карточка одной услуги.
 function AmenityCard({ amenity }: { amenity: Amenity }) {
   const type = amenity.type as ServiceType
   const prices = PRICE_BY_CLASS[type]
   const description = amenity.description || FALLBACK_DESCRIPTIONS[type]
 
   return (
+    // opacity-60: визуально приглушаем недоступные услуги
     <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col ${!amenity.available ? 'opacity-60' : ''}`}>
       {amenity.hasImage ? (
         <div className="relative h-44">
@@ -52,6 +61,7 @@ function AmenityCard({ amenity }: { amenity: Amenity }) {
             alt={amenity.name}
             className="w-full h-full object-cover"
           />
+          {/* Overlay "Недоступно" поверх изображения */}
           {!amenity.available && (
             <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
               <span className="text-white text-sm font-semibold px-3 py-1 bg-gray-800 rounded-full">
@@ -64,6 +74,7 @@ function AmenityCard({ amenity }: { amenity: Amenity }) {
 
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div className="flex items-start gap-3">
+          {/* Иконка показывается только если нет изображения */}
           {!amenity.hasImage && (
             <span className="text-4xl leading-none mt-0.5">{SERVICE_ICONS[type] ?? '🏨'}</span>
           )}
@@ -88,6 +99,7 @@ function AmenityCard({ amenity }: { amenity: Amenity }) {
           Длительность: <span className="font-medium text-gray-700">{amenity.maxDurationMinutes} мин</span>
         </div>
 
+        {/* Таблица цен по классам: три колонки — Стандарт/Комфорт/Премиум */}
         {prices && (
           <div className="border-t pt-3 grid grid-cols-3 gap-2 text-xs">
             {(['ORDINARY', 'MIDDLE', 'PREMIUM'] as const).map((cls) => (
@@ -111,7 +123,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     amenityApi.getAll()
-      .then(setAmenities)
+      .then(setAmenities)              // setAmenities передаётся напрямую как колбэк
       .finally(() => setLoading(false))
   }, [])
 
@@ -148,6 +160,7 @@ export default function ServicesPage() {
             ))}
           </div>
 
+          {/* Информационная плашка с инструкцией по заказу */}
           <div className="card bg-blue-50 border-blue-200 text-sm text-blue-800">
             <p className="font-medium mb-1">Как заказать услугу?</p>
             <ol className="list-decimal list-inside space-y-1">
@@ -155,6 +168,7 @@ export default function ServicesPage() {
               <li>Нажмите «Забронировать» — на следующем шаге выберите нужные услуги с датой и временем</li>
               <li>Стоимость услуг рассчитается автоматически с учётом класса вашего номера</li>
             </ol>
+            {/* ¹ — сноска к "баня: 1-я бесплатно¹" в PRICE_BY_CLASS */}
             <p className="mt-2 text-xs text-blue-600">
               ¹ Для Premium: сауна и баня делят одну бесплатную квоту — только первая из двух бесплатна.
             </p>

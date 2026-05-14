@@ -1,38 +1,57 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Три директивы Tailwind CSS — инжектируют утилиты в финальный CSS-бандл. */
+@tailwind base;        /* сброс стилей браузера (Preflight) + CSS-переменные */
+@tailwind components;  /* компонентные классы из @layer components ниже */
+@tailwind utilities;   /* утилитарные классы (flex, text-sm, px-4 и т.д.) */
 
+/* @layer base: стили применяются к HTML-элементам напрямую, низкий приоритет. */
 @layer base {
   body {
+    /* bg-gray-50: светло-серый фон страницы (не белый).
+       antialiased: сглаживание шрифта через -webkit-font-smoothing: antialiased. */
     @apply bg-gray-50 text-gray-900 antialiased;
   }
 }
 
+/* @layer components: переиспользуемые CSS-классы через @apply.
+   Каждый класс собирает несколько Tailwind-утилит в одно именованное правило.
+   Это позволяет писать className="btn-primary" вместо длинной строки утилит. */
 @layer components {
+  /* Основная кнопка действия: синяя заливка, белый текст. */
   .btn-primary {
+    /* disabled:opacity-50 disabled:cursor-not-allowed: визуально блокирует кнопку при disabled=true.
+       transition-colors: плавный переход цвета при hover. */
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
   }
+  /* Вторичная кнопка: белая с серой рамкой, используется для "Отмена", "Назад". */
   .btn-secondary {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
   }
+  /* Опасная кнопка: красная, для деструктивных действий (удалить, отменить бронь). */
   .btn-danger {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
   }
+  /* Кнопка успеха: зелёная, для оплаты, подтверждения. */
   .btn-success {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
   }
+  /* Поле ввода: единый стиль для <input>, <select>, <textarea>.
+     focus:border-transparent: убираем синюю рамку браузера, используем ring вместо border. */
   .input {
     @apply block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 bg-white;
   }
+  /* Метка поля формы: блочный элемент с отступом снизу (mb-1). */
   .label {
     @apply block text-sm font-medium text-gray-700 mb-1;
   }
+  /* Карточка-контейнер: белый фон, скруглённые углы, тень, внешняя рамка, отступы. */
   .card {
     @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
   }
+  /* Заголовок страницы: крупный жирный, используется в h1 каждой страницы. */
   .page-title {
     @apply text-2xl font-bold text-gray-900 mb-6;
   }
+  /* Заголовок раздела: чуть меньше page-title, для подзаголовков секций. */
   .section-title {
     @apply text-lg font-semibold text-gray-900 mb-4;
   }

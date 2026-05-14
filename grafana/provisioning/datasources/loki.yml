@@ -1,11 +1,14 @@
+# Автоматическая конфигурация источника данных Grafana при старте контейнера.
+# Grafana читает файлы из /etc/grafana/provisioning/datasources/ на старте
+# и регистрирует datasources без ручной настройки через UI.
 apiVersion: 1
 
 datasources:
-  - name: Loki
-    type: loki
-    uid: loki
-    access: proxy
-    url: http://loki:3100
-    isDefault: true
+  - name: Loki                 # отображаемое имя в Grafana UI
+    type: loki                 # тип плагина (встроен в Grafana)
+    uid: loki                  # уникальный ID — используется в dashboard JSON для ссылок
+    access: proxy              # Grafana сама запрашивает Loki (не браузер напрямую)
+    url: http://loki:3100      # имя сервиса из docker-compose.yml на порту Loki
+    isDefault: true            # этот datasource используется по умолчанию в новых панелях
     jsonData:
-      maxLines: 5000
+      maxLines: 5000           # максимальное кол-во строк лога в одном запросе

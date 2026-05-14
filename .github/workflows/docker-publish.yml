@@ -1,22 +1,30 @@
-name: Docker Publish
+name: Docker Publish  # публикует образы в GitHub Container Registry (GHCR)
 
+# Запускается при push в master И при push тега v* (v1.0.0, v2.1.3 и т.д.)
 on:
   push:
     branches: [master]
-    tags: ['v*']
+    tags: ['v*']       # semantic version tags: v1.0.0, v1.2.3
 
 jobs:
   build-and-push:
+    # Имя задания — название сервиса из матрицы (удобно читать в UI Actions).
     name: ${{ matrix.service }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # Required to push to GHCR
+      packages: write  # обязательно для push в GHCR (ghcr.io)
 
     strategy:
-      fail-fast: false  # Build remaining services even if one fails
+      # fail-fast: false — продолжаем строить остальные сервисы если один упал.
+      # По умолчанию (true) при ошибке одного сервиса остальные отменяются.
+      fail-fast: false
+      # matrix: запускает по одному job на каждую запись.
+      # Каждый сервис собирается параллельно — экономит время CI.
       matrix:
         include:
+          # context: . (корень) — нужен для multi-module Gradle; Dockerfile копирует весь проект.
+          # context: ./frontend — только фронт; node build не нуждается в остальных модулях.
           - service: customer-service
             context: .
             file: customer-service/Dockerfile
@@ -45,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Логин в GHCR. GITHUB_TOKEN автоматически выдаётся Actions — не нужно хранить секрет вручную.
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -52,7 +61,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Generates tags: latest (on master), sha-<short>, v1.2.3 (on tag)
+      # Генерирует теги и labels для образа:
+      #   latest — только при push в master (is_default_branch = true)
+      #   sha-abc1234 — уникальный тег по короткому git SHA
+      #   v1.2.3 — при push тега (type=semver, pattern={{version}})
+      #   v1.2 — major.minor без patch (удобно для "последняя 1.x")
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -64,9 +77,14 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      # Buildx: расширенный docker build с поддержкой multi-platform и кэша GHA.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Основной шаг: собирает и пушит образ.
+      # cache-from/cache-to: кэш слоёв Docker в GitHub Actions cache.
+      # scope=${{ matrix.service }}: изолирует кэш каждого сервиса (не смешиваются слои).
+      # mode=max: кэшируются все промежуточные слои, не только итоговый.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -75,6 +93,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # GHA cache persists Docker layer cache between runs
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

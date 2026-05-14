@@ -42,7 +42,8 @@
       "Bash(./gradlew test *)",
       "Bash(Test-Path *)",
       "Bash(./gradlew integrationTest --no-daemon)",
-      "Bash(Select-Object -First 20 FullName)"
+      "Bash(Select-Object -First 20 FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\MaxxPC\\\\IdeaProjects\\\\Pet_Hotel\\\\common\" -Recurse -File | Where-Object { $_.Extension -match '\\\\.\\(java|gradle|yml|yaml|xml|properties|Dockerfile\\)$' } | Select-Object FullName)"
     ]
   }
 }

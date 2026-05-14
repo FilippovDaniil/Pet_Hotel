@@ -1,14 +1,21 @@
+# Dependabot автоматически создаёт PR при выходе новых версий зависимостей.
+# Запускается еженедельно по понедельникам для трёх экосистем.
 version: 2
 
 updates:
+  # Gradle зависимости: Spring Boot, Lombok, Testcontainers и т.д.
+  # directory: / — ищет build.gradle и gradle/libs.versions.toml в корне репозитория.
   - package-ecosystem: gradle
     directory: /
     schedule:
       interval: weekly
       day: monday
+    # Не больше 5 открытых PR одновременно — иначе захламляется список PR.
     open-pull-requests-limit: 5
-    labels: [dependencies, backend]
+    labels: [dependencies, backend]  # метки для фильтрации в GitHub
 
+  # npm зависимости: React, Vite, Tailwind, TypeScript и т.д.
+  # directory: /frontend — package.json находится в папке frontend.
   - package-ecosystem: npm
     directory: /frontend
     schedule:
@@ -17,6 +24,8 @@ updates:
     open-pull-requests-limit: 5
     labels: [dependencies, frontend]
 
+  # GitHub Actions: actions/checkout, actions/setup-java, docker/* и т.д.
+  # directory: / — .github/workflows/*.yml в корне репозитория.
   - package-ecosystem: github-actions
     directory: /
     schedule:

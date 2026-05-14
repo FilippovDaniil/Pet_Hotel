@@ -1,7 +1,9 @@
+// Корневой компонент приложения: настройка маршрутизации и guards доступа.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store/auth.store'
-import Layout from './components/layout/Layout'
+import { useAuthStore } from './store/auth.store'         // Zustand store с token/role
+import Layout from './components/layout/Layout'           // Navbar + <Outlet /> (общая обёртка)
 
+// Импорты страниц по разделам
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import LandingPage from './pages/LandingPage'
@@ -21,12 +23,17 @@ import ManageAmenitiesPage from './pages/admin/ManageAmenitiesPage'
 import SupportPage from './pages/customer/SupportPage'
 import AdminSupportPage from './pages/admin/AdminSupportPage'
 
+// Guard: проверяет, авторизован ли пользователь.
+// Если нет токена — редиректит на /login (replace = не добавляет в историю браузера).
+// children — любые вложенные JSX-элементы (Route, компоненты).
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)  // селектор Zustand — реактивно обновляется
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <>{children}</>                                           // React.Fragment — не добавляет лишний DOM-элемент
 }
 
+// Guard: проверяет, входит ли роль текущего пользователя в список допустимых.
+// roles: string[] — массив разрешённых ролей, например ['ADMIN'] или ['CUSTOMER', 'RECEPTION'].
 function RequireRole({
   roles,
   children,
@@ -34,8 +41,9 @@ function RequireRole({
   roles: string[]
   children: React.ReactNode
 }) {
-  const role = useAuthStore((s) => s.role)
+  const role = useAuthStore((s) => s.role)          // текущая роль из Zustand (CUSTOMER/RECEPTION/ADMIN)
   if (!role || !roles.includes(role)) {
+    // Роль не входит в список допустимых — показываем заглушку вместо редиректа
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <div className="card text-center max-w-sm">
@@ -51,21 +59,29 @@ function RequireRole({
 
 export default function App() {
   return (
+    // BrowserRouter: использует HTML5 History API (URL без #hash).
+    // Оборачивает всё приложение — делает доступными хуки useNavigate, useParams и т.д.
     <BrowserRouter>
       <Routes>
+        {/* Публичные маршруты — доступны без авторизации */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+        {/* Группа защищённых маршрутов: Layout с Navbar обёрнут в RequireAuth.
+            Если пользователь не авторизован — все эти пути → /login.
+            element без path: не добавляет сегмент URL, только рендерит обёртку. */}
         <Route
           element={
             <RequireAuth>
-              <Layout />
+              <Layout />   {/* <Outlet /> внутри Layout подставляет дочерний маршрут */}
             </RequireAuth>
           }
         >
+          {/* Дашборд — доступен всем авторизованным ролям */}
           <Route path="/dashboard" element={<DashboardPage />} />
 
+          {/* /rooms — каталог номеров: клиент смотрит, admin управляет */}
           <Route
             path="/rooms"
             element={
@@ -74,6 +90,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /bookings/new — форма создания бронирования (только CUSTOMER) */}
           <Route
             path="/bookings/new"
             element={
@@ -82,6 +99,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /bookings/my — список бронирований текущего клиента */}
           <Route
             path="/bookings/my"
             element={
@@ -90,6 +108,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /bookings/all — все бронирования системы (RECEPTION/ADMIN) */}
           <Route
             path="/bookings/all"
             element={
@@ -98,7 +117,11 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /bookings/:id — детальная страница бронирования.
+              :id — динамический параметр, доступен через useParams().
+              Нет RequireRole: доступна всем авторизованным (API сам ограничит по роли). */}
           <Route path="/bookings/:id" element={<BookingDetailPage />} />
+          {/* /services — каталог дополнительных услуг (просмотр для всех ролей) */}
           <Route
             path="/services"
             element={
@@ -107,6 +130,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /menu — страница заказа еды из буфета (только CUSTOMER) */}
           <Route
             path="/menu"
             element={
@@ -115,6 +139,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /orders/my — история заказов буфета текущего клиента */}
           <Route
             path="/orders/my"
             element={
@@ -123,6 +148,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /invoices — счета текущего клиента */}
           <Route
             path="/invoices"
             element={
@@ -131,6 +157,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /rooms/manage — CRUD управление номерами (только ADMIN) */}
           <Route
             path="/rooms/manage"
             element={
@@ -139,6 +166,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /menu/manage — CRUD управление меню буфета (только ADMIN) */}
           <Route
             path="/menu/manage"
             element={
@@ -147,6 +175,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /amenities/manage — CRUD управление доп. услугами (только ADMIN) */}
           <Route
             path="/amenities/manage"
             element={
@@ -155,6 +184,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /support — чат клиента с поддержкой */}
           <Route
             path="/support"
             element={
@@ -163,6 +193,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          {/* /support/admin — панель администратора: список всех диалогов */}
           <Route
             path="/support/admin"
             element={
@@ -173,6 +204,7 @@ export default function App() {
           />
         </Route>
 
+        {/* Catch-all: любой неизвестный URL → главная страница */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

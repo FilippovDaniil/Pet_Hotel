@@ -1,30 +1,49 @@
 plugins {
+    // spring.boot: добавляет задачу bootJar (fat-JAR со встроенным Tomcat) и плагин для запуска bootRun.
     alias(libs.plugins.spring.boot)
+    // spring.dependency.management: импортирует BOM → не нужно прописывать версии для Spring-зависимостей.
     alias(libs.plugins.spring.dependency.management)
     id 'java'
 }
 
 dependencyManagement {
     imports {
+        // Spring Cloud BOM: согласованные версии Spring Cloud Gateway, LoadBalancer и т.д.
+        // В customer-service Spring Cloud не используется напрямую, но BOM нужен для транзитивных зависимостей.
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${libs.versions.spring.cloud.get()}"
     }
 }
 
 dependencies {
+    // :common — внутренний модуль проекта; содержит JwtUtil, enums, Kafka-события.
     implementation project(':common')
+    // spring-web: DispatcherServlet, @RestController, встроенный Tomcat.
     implementation libs.spring.boot.starter.web
+    // spring-data-jpa: Hibernate + Spring Data JPA репозитории.
     implementation libs.spring.boot.starter.data.jpa
+    // spring-security: SecurityFilterChain, PasswordEncoder (BCrypt).
     implementation libs.spring.boot.starter.security
+    // spring-validation: Bean Validation (@Valid, @NotBlank, @Email, @Size).
     implementation libs.spring.boot.starter.validation
+    // actuator: эндпоинты /actuator/health, /actuator/metrics для мониторинга.
     implementation libs.spring.boot.starter.actuator
+    // spring-kafka: KafkaTemplate и авто-конфигурация (в customer-service реально не используется, но есть в classpath).
     implementation libs.spring.kafka
+    // logstash-logback-encoder: JSON-логи в stdout → Promtail → Loki → Grafana.
     implementation libs.logstash.logback.encoder
+    // springdoc-openapi: автогенерация Swagger UI из аннотаций @Operation, @Tag.
     implementation libs.springdoc.openapi
+    // postgresql: JDBC-драйвер; runtimeOnly — не нужен при компиляции, только в рантайме.
     runtimeOnly libs.postgresql
+    // Lombok: генерирует геттеры/сеттеры/@Builder во время компиляции.
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+    // spring-boot-starter-test: JUnit 5, AssertJ, Mockito.
     testImplementation libs.spring.boot.starter.test
+    // spring-boot-testcontainers: @ServiceConnection — автоматически конфигурирует datasource из контейнера.
     testImplementation libs.spring.boot.testcontainers
+    // testcontainers-junit-jupiter: @Testcontainers, @Container аннотации.
     testImplementation libs.testcontainers.junit.jupiter
+    // testcontainers-postgresql: PostgreSQLContainer — поднимает реальную БД в Docker для IT-тестов.
     testImplementation libs.testcontainers.postgresql
 }

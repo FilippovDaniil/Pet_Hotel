@@ -1,3 +1,5 @@
+// Страница создания бронирования (CUSTOMER).
+// Параметры roomId, checkIn, checkOut передаются из RoomsPage через query string.
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { roomApi } from '../../api/room.api'
@@ -5,6 +7,7 @@ import { bookingApi } from '../../api/booking.api'
 import type { Room, ServiceType, AmenityBookingRequest } from '../../types'
 import { SERVICE_TYPE_LABELS, ROOM_CLASS_LABELS, ROOM_CLASS_COLORS } from '../../types'
 
+// Полный список всех доступных услуг (для рендера чекбоксов).
 const ALL_SERVICES: ServiceType[] = [
   'SAUNA',
   'BATH',
@@ -14,9 +17,10 @@ const ALL_SERVICES: ServiceType[] = [
   'MASSAGE',
 ]
 
+// Локальный тип: состояние одной строки выбора услуги в форме.
 interface AmenityEntry {
-  checked: boolean
-  startTime: string
+  checked: boolean   // выбрана ли услуга
+  startTime: string  // "2025-08-01T10:00" — datetime-local формат
   endTime: string
 }
 
@@ -30,6 +34,7 @@ function Spinner() {
 
 export default function BookingCreatePage() {
   const navigate = useNavigate()
+  // useSearchParams: читает параметры из URL query string (?roomId=1&checkIn=...)
   const [searchParams] = useSearchParams()
 
   const roomId = Number(searchParams.get('roomId'))
@@ -40,11 +45,15 @@ export default function BookingCreatePage() {
   const [loadingRoom, setLoadingRoom] = useState(true)
   const [roomError, setRoomError] = useState('')
 
+  // Фабрика начального состояния для одной услуги.
   const defaultEntry = (): AmenityEntry => ({
     checked: false,
     startTime: '',
     endTime: '',
   })
+
+  // Инициализируем state для всех услуг через Object.fromEntries.
+  // Ленивый инициализатор (() => ...) — вычисляется один раз при монтировании.
   const [amenities, setAmenities] = useState<Record<ServiceType, AmenityEntry>>(
     () =>
       Object.fromEntries(
@@ -55,6 +64,7 @@ export default function BookingCreatePage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
+  // Загружаем информацию о номере для отображения в форме.
   useEffect(() => {
     if (!roomId) {
       setRoomError('Не указан номер комнаты')
@@ -86,6 +96,7 @@ export default function BookingCreatePage() {
 
   const roomCost = (room?.pricePerNight ?? 0) * nights
 
+  // Переключение чекбокса услуги: spread сохраняет остальные поля нетронутыми.
   const toggleAmenity = (type: ServiceType) => {
     setAmenities((prev) => ({
       ...prev,
@@ -93,6 +104,7 @@ export default function BookingCreatePage() {
     }))
   }
 
+  // Обновление времени начала или окончания для конкретной услуги.
   const updateAmenity = (
     type: ServiceType,
     field: 'startTime' | 'endTime',
@@ -108,6 +120,7 @@ export default function BookingCreatePage() {
     e.preventDefault()
     setSubmitError('')
 
+    // Собираем только выбранные услуги в формат API.
     const selectedAmenities: AmenityBookingRequest[] = ALL_SERVICES.filter(
       (s) => amenities[s].checked
     ).map((s) => ({
@@ -116,6 +129,7 @@ export default function BookingCreatePage() {
       endTime: amenities[s].endTime,
     }))
 
+    // Валидация 1: у каждой выбранной услуги должно быть заполнено время.
     for (const a of selectedAmenities) {
       if (!a.startTime || !a.endTime) {
         setSubmitError(
@@ -131,7 +145,8 @@ export default function BookingCreatePage() {
       }
     }
 
-    // Check for overlapping amenities within this booking
+    // Валидация 2: проверка пересечения временных слотов между услугами.
+    // Классический предикат: A.start < B.end AND B.start < A.end.
     for (let i = 0; i < selectedAmenities.length; i++) {
       for (let j = i + 1; j < selectedAmenities.length; j++) {
         const a = selectedAmenities[i]
@@ -151,7 +166,7 @@ export default function BookingCreatePage() {
         roomId,
         checkIn,
         checkOut,
-        amenities: selectedAmenities,
+        amenities: selectedAmenities,  // пустой массив — тоже допустимо
       })
       navigate('/bookings/my')
     } catch (err: any) {
@@ -179,7 +194,7 @@ export default function BookingCreatePage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="page-title">Создание брони</h1>
 
-      {/* Room info card */}
+      {/* Карточка выбранного номера */}
       {room && (
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -202,7 +217,7 @@ export default function BookingCreatePage() {
         </div>
       )}
 
-      {/* Stay info */}
+      {/* Детали проживания */}
       <div className="card mb-6">
         <h2 className="section-title">Детали проживания</h2>
         <div className="grid grid-cols-3 gap-4 text-sm">
@@ -236,12 +251,13 @@ export default function BookingCreatePage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Amenities */}
+        {/* Дополнительные услуги */}
         <div className="card mb-6">
           <h2 className="section-title">Дополнительные услуги</h2>
           <div className="space-y-4">
             {ALL_SERVICES.map((service) => (
               <div key={service} className="border border-gray-200 rounded-lg p-4">
+                {/* Чекбокс + название услуги */}
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -254,15 +270,17 @@ export default function BookingCreatePage() {
                   </span>
                 </label>
 
+                {/* Поля времени появляются только если услуга выбрана */}
                 {amenities[service].checked && (
                   <div className="mt-3 grid grid-cols-2 gap-3 pl-7">
                     <div>
+                      {/* id строится динамически: `${service}-start` → "SAUNA-start" */}
                       <label className="label" htmlFor={`${service}-start`}>
                         Начало
                       </label>
                       <input
                         id={`${service}-start`}
-                        type="datetime-local"
+                        type="datetime-local"   // поле выбора даты + времени
                         className="input"
                         value={amenities[service].startTime}
                         onChange={(e) =>
@@ -293,7 +311,7 @@ export default function BookingCreatePage() {
           </div>
         </div>
 
-        {/* Total preview */}
+        {/* Итого (только стоимость номера; услуги рассчитываются сервером) */}
         <div className="card mb-6 bg-primary-50 border-primary-200">
           <div className="flex justify-between items-center">
             <span className="text-gray-700 font-medium">
@@ -315,6 +333,7 @@ export default function BookingCreatePage() {
         )}
 
         <div className="flex gap-3">
+          {/* navigate(-1): возврат на предыдущую страницу в истории браузера */}
           <button
             type="button"
             className="btn-secondary flex-1"
