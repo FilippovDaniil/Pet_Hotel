@@ -50,7 +50,7 @@ jobs:
       # retention-days: 7 — артефакт доступен для скачивания 7 дней.
       - name: Upload test reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-test-reports
           path: '**/build/reports/tests/'
