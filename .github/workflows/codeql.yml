@@ -34,7 +34,7 @@ jobs:
       # Java/Kotlin: CodeQL анализирует байткод, не исходники — нужна компиляция.
       # Шаги с if: выполняются только для java-kotlin (JavaScript не требует сборки).
       - if: matrix.language == 'java-kotlin'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
