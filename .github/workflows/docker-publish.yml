@@ -86,7 +86,7 @@ jobs:
       # scope=${{ matrix.service }}: изолирует кэш каждого сервиса (не смешиваются слои).
       # mode=max: кэшируются все промежуточные слои, не только итоговый.
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
