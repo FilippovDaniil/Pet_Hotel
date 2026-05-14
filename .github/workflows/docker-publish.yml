@@ -79,7 +79,7 @@ jobs:
 
       # Buildx: расширенный docker build с поддержкой multi-platform и кэша GHA.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # Основной шаг: собирает и пушит образ.
       # cache-from/cache-to: кэш слоёв Docker в GitHub Actions cache.
