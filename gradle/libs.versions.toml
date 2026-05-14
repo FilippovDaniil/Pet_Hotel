@@ -51,4 +51,4 @@ testcontainers-postgresql         = { module = "org.testcontainers:postgresql", 
 [plugins]
 # Плагины подключаются через alias в build.gradle: alias(libs.plugins.spring.boot)
 spring-boot               = { id = "org.springframework.boot", version.ref = "spring-boot" }             # bootJar, bootRun задачи
-spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.6" }             # управляет BOM-версиями (без version.ref — нет в [versions])
+spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.7" }             # управляет BOM-версиями (без version.ref — нет в [versions])
