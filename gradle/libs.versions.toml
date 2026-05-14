@@ -7,7 +7,7 @@
 spring-boot = "3.3.5"          # Spring Boot — основной фреймворк
 spring-cloud = "2023.0.3"      # Spring Cloud BOM — управляет версиями cloud-зависимостей
 postgresql = "42.7.3"          # JDBC-драйвер PostgreSQL
-jjwt = "0.12.3"                # Java JWT (JJWT) — генерация и проверка токенов
+jjwt = "0.13.0"                # Java JWT (JJWT) — генерация и проверка токенов
 lombok = "1.18.34"             # Lombok — генерация boilerplate кода (@Data, @Builder и т.д.)
 mapstruct = "1.5.5.Final"      # MapStruct — маппинг между Entity и DTO (кодогенерация)
 logstash-logback = "7.4"       # Logstash Logback Encoder — JSON-логи для Loki/Promtail
