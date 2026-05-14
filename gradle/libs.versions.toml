@@ -10,7 +10,7 @@ postgresql = "42.7.3"          # JDBC-драйвер PostgreSQL
 jjwt = "0.12.3"                # Java JWT (JJWT) — генерация и проверка токенов
 lombok = "1.18.34"             # Lombok — генерация boilerplate кода (@Data, @Builder и т.д.)
 mapstruct = "1.5.5.Final"      # MapStruct — маппинг между Entity и DTO (кодогенерация)
-logstash-logback = "7.4"       # Logstash Logback Encoder — JSON-логи для Loki/Promtail
+logstash-logback = "9.0"       # Logstash Logback Encoder — JSON-логи для Loki/Promtail
 springdoc = "2.6.0"            # SpringDoc OpenAPI — автоматическая генерация Swagger UI
 testcontainers = "1.20.4"      # Testcontainers — Docker-контейнеры в интеграционных тестах
 
