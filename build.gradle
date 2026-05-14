@@ -4,7 +4,7 @@ plugins {
     // Каждый подмодуль применяет их сам через alias(libs.plugins.*) в своём build.gradle.
     // Это позволяет иметь разные версии плагинов в подмодулях (если нужно).
     id 'org.springframework.boot' version '3.3.5' apply false
-    id 'io.spring.dependency-management' version '1.1.6' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
 // allprojects применяется ко всем: корневому проекту + всем подмодулям.
